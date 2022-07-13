@@ -1,2 +1,5 @@
-*/node_modules/
-*/target/
+*/node_modules/*
+*/target/*
+*/dist/*
+/RustFrontend/RustFrontEnd/target
+/RustFrontend/dist
