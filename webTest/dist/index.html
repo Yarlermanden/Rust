@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<title>WASM Test</title>
+	<meta charset="UTF-8">
+  <script src="/bundle.js"></script>
+  <script>
+    //import * as bundle from '/bundle.js';
+    var splitText = "loading";
+    function test1() {
+      var simpleText = "hello_world";
+      var finalSplitText = simpleText.split("_");
+      splitText = finalSplitText[0];
+      console.log("test");
+
+      //bundle.test12();
+      //test12();
+      //test123();
+      document.getElementById("myVariable").innerHTML=splitText;
+    };
+
+  </script>
+
+
+  </head>
+  <body style="background: #333; color: #fff;">
+
+    <button id="button3">Test</button>
+    <button id="button2">Test</button>
+    <button onclick="test1()">Test</button>
+    <p id="myVariable"></p>
+  </body>
+</html>
