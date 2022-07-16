@@ -5,10 +5,16 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pong with WASM</title>
+    <title>WASM in Browser</title>
 </head>
 
 <body>
+    <div style="margin: 25px;">
+        <h1 style="text-align: center;">Game</h1>
+        <div style="display: flex; justify-content: center;">
+            <div id="wasm-example"/>
+        </div>
+    </div>
   <script type="module">
       import init from "./pkg/project.js";
       init().then(() => {
@@ -20,9 +26,6 @@
           background-color: black;
       }
   </style>
-  <div id="wasm-example">
-
-  </div>
 </body>
 
 </html>
