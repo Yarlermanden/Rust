@@ -3,3 +3,5 @@
 */dist/*
 /RustFrontend/RustFrontEnd/target
 /RustFrontend/dist
+/project3/project/target/*
+/project3/project/pkg/*

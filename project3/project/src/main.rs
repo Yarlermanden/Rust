@@ -1,5 +1,5 @@
 use project::run;
 
 fn main() {
-    run();
+    pollster::block_on(run());
 }
