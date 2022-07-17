@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    window::Window,
+    window::{Window, Fullscreen},
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -660,6 +660,7 @@ pub async fn run() {
         .with_title(title)
         .build(&event_loop)
         .unwrap();
+    window.set_cursor_visible(false);
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -679,6 +680,22 @@ pub async fn run() {
             })
             .expect("Couldn't append canvas to document body.");
     }
+
+    /*
+    #[cfg(not(target_arch="wasm32"))]
+    {
+        let mut monitor = event_loop
+            .available_monitors()
+            .next()
+            .expect("no monitor found!");
+        println!("Monitor: {:?}", monitor.name());
+        let mut mode = monitor.video_modes().next().expect("no mode found");
+        let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
+        println!("Setting mode: {fullscreen:?}");
+        //window.set_fullscreen(fullscreen);
+    }
+    */
+    window.set_maximized(true);
 
     let mut state = State::new(&window).await; // NEW!
     let mut last_render_time = instant::Instant::now();
@@ -708,6 +725,19 @@ pub async fn run() {
                             },
                         ..
                     } => *control_flow = ControlFlow::Exit,
+                    WindowEvent::KeyboardInput {
+                        input:
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(virtual_code),
+                                ..
+                            },
+                        ..
+                    } => match virtual_code {
+                        VirtualKeyCode::F => {
+                        }
+                        _ => (),
+                    }
                     WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
                     }
