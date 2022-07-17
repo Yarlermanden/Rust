@@ -531,7 +531,7 @@ impl State {
         }
     }
 
-    fn input(&mut self, event: &WindowEvent) -> bool {
+    fn input(&mut self, window: &Window, event: &WindowEvent) -> bool {
         match event {
             WindowEvent::KeyboardInput {
                 input:
@@ -551,7 +551,11 @@ impl State {
                 state,
                 ..
             } => {
+                let prev = self.mouse_pressed;
                 self.mouse_pressed = *state == ElementState::Pressed;
+                if(prev != self.mouse_pressed) {
+                    window.set_cursor_grab(true);
+                }
                 true
             }
             _ => false,
@@ -661,6 +665,9 @@ pub async fn run() {
         .build(&event_loop)
         .unwrap();
     window.set_cursor_visible(false);
+    window.set_maximized(true);
+    #[cfg(not(target_arch="wasm32"))]
+    window.set_cursor_grab(true);
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -695,9 +702,8 @@ pub async fn run() {
         //window.set_fullscreen(fullscreen);
     }
     */
-    window.set_maximized(true);
 
-    let mut state = State::new(&window).await; // NEW!
+    let mut state = State::new(&window).await;
     let mut last_render_time = instant::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -706,13 +712,13 @@ pub async fn run() {
             Event::DeviceEvent {
                 event: DeviceEvent::MouseMotion{ delta, },
                 .. // We're not using device_id currently
-            } => if true {
+            } => {
                 state.camera_controller.process_mouse(delta.0, delta.1)
             }
             Event::WindowEvent {
                 ref event,
                 window_id,
-            } if window_id == window.id() && !state.input(event) => {
+            } if window_id == window.id() && !state.input(&window, event) => {
                 match event {
                     #[cfg(not(target_arch="wasm32"))]
                     WindowEvent::CloseRequested
@@ -725,6 +731,7 @@ pub async fn run() {
                             },
                         ..
                     } => *control_flow = ControlFlow::Exit,
+                    #[cfg(target_arch="wasm32")]
                     WindowEvent::KeyboardInput {
                         input:
                             KeyboardInput {
@@ -735,6 +742,7 @@ pub async fn run() {
                         ..
                     } => match virtual_code {
                         VirtualKeyCode::F => {
+                            
                         }
                         _ => (),
                     }
