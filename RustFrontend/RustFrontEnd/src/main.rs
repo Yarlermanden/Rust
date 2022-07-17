@@ -15,14 +15,14 @@ fn app() -> Html {
 
         Callback::from(move |_| {
             state.set(Model {
-                value: state.value + 1
+                value: state.value + 2
             })
         })
     };
 
     html! {
         <div>
-            <button onclick={onclick}>{"+1"}</button>
+            <button onclick={onclick}>{"+2"}</button>
             <p> { state.value } </p>
         </div>
     }

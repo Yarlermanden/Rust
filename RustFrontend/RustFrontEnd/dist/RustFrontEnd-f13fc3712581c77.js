@@ -508,7 +508,7 @@ function initSync(bytes) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('RustFrontEnd-2bd8fc7e8383a398_bg.wasm', import.meta.url);
+        input = new URL('RustFrontEnd-f13fc3712581c77_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 
