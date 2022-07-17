@@ -515,13 +515,11 @@ impl State {
             light_render_pipeline,
             #[allow(dead_code)]
             debug_material,
-            // NEW!
             mouse_pressed: false,
         }
     }
 
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        // UPDATED!
         if new_size.width > 0 && new_size.height > 0 {
             self.projection.resize(new_size.width, new_size.height);
             self.size = new_size;
@@ -533,7 +531,6 @@ impl State {
         }
     }
 
-    // UPDATED!
     fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
             WindowEvent::KeyboardInput {
@@ -689,14 +686,12 @@ pub async fn run() {
         *control_flow = ControlFlow::Poll;
         match event {
             Event::MainEventsCleared => window.request_redraw(),
-            // NEW!
             Event::DeviceEvent {
                 event: DeviceEvent::MouseMotion{ delta, },
                 .. // We're not using device_id currently
-            } => if state.mouse_pressed {
+            } => if true {
                 state.camera_controller.process_mouse(delta.0, delta.1)
             }
-            // UPDATED!
             Event::WindowEvent {
                 ref event,
                 window_id,
@@ -722,7 +717,6 @@ pub async fn run() {
                     _ => {}
                 }
             }
-            // UPDATED!
             Event::RedrawRequested(window_id) if window_id == window.id() => {
                 let now = instant::Instant::now();
                 let dt = now - last_render_time;
