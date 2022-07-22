@@ -553,8 +553,9 @@ impl State {
             } => {
                 let prev = self.mouse_pressed;
                 self.mouse_pressed = *state == ElementState::Pressed;
-                if(prev != self.mouse_pressed) {
-                    window.set_cursor_grab(true);
+                if prev != self.mouse_pressed {
+                    _ = window.set_cursor_grab(true);
+                    //window.set_maximized(true);
                 }
                 true
             }
@@ -667,7 +668,9 @@ pub async fn run() {
     window.set_cursor_visible(false);
     window.set_maximized(true);
     #[cfg(not(target_arch="wasm32"))]
-    window.set_cursor_grab(true);
+    {
+        _ = window.set_cursor_grab(true);
+    }
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -689,18 +692,15 @@ pub async fn run() {
     }
 
     /*
-    #[cfg(not(target_arch="wasm32"))]
-    {
-        let mut monitor = event_loop
-            .available_monitors()
-            .next()
-            .expect("no monitor found!");
-        println!("Monitor: {:?}", monitor.name());
-        let mut mode = monitor.video_modes().next().expect("no mode found");
-        let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
-        println!("Setting mode: {fullscreen:?}");
-        //window.set_fullscreen(fullscreen);
-    }
+    let mut monitor = event_loop
+        .available_monitors()
+        .next()
+        .expect("no monitor found!");
+    println!("Monitor: {:?}", monitor.name());
+    let mut mode = monitor.video_modes().next().expect("no mode found");
+    let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
+    println!("Setting mode: {fullscreen:?}");
+    //window.set_fullscreen(fullscreen);
     */
 
     let mut state = State::new(&window).await;
@@ -742,7 +742,7 @@ pub async fn run() {
                         ..
                     } => match virtual_code {
                         VirtualKeyCode::F => {
-                            
+                            //window.set_fullscreen(fullscreen.clone());
                         }
                         _ => (),
                     }
