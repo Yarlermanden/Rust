@@ -370,9 +370,9 @@ impl State {
                 .unwrap();
 
         let light_uniform = LightUniform {
-            position: [2.0, 2.0, 2.0],
+            position: [20.0, 4.0, 8.0],
             _padding: 0,
-            color: [1.0, 1.0, 1.0],
+            color: [0.7, 1.0, 1.0],
             _padding2: 0,
         };
 
@@ -458,7 +458,6 @@ impl State {
         let debug_material = {
             let diffuse_bytes = include_bytes!("../res/cobble-diffuse.png");
             let normal_bytes = include_bytes!("../res/cobble-normal.png");
-
             let diffuse_texture = texture::Texture::from_bytes(
                 &device,
                 &queue,
@@ -475,7 +474,6 @@ impl State {
                 true,
             )
             .unwrap();
-
             model::Material::new(
                 &device,
                 "alt-material",

@@ -1,8 +1,6 @@
 use std::io::{BufReader, Cursor};
-
 use cfg_if::cfg_if;
 use wgpu::util::DeviceExt;
-
 use crate::{model, texture};
 
 #[cfg(target_arch = "wasm32")]
@@ -32,7 +30,6 @@ pub async fn load_string(file_name: &str) -> anyhow::Result<String> {
             let txt = std::fs::read_to_string(path)?;
         }
     }
-
     Ok(txt)
 }
 
@@ -52,7 +49,6 @@ pub async fn load_binary(file_name: &str) -> anyhow::Result<Vec<u8>> {
             let data = std::fs::read(path)?;
         }
     }
-
     Ok(data)
 }
 
@@ -94,7 +90,6 @@ pub async fn load_model(
     for m in obj_materials? {
         let diffuse_texture = load_texture(&m.diffuse_texture, false, device, queue).await?;
         let normal_texture = load_texture(&m.normal_texture, true, device, queue).await?;
-
         materials.push(model::Material::new(
             device,
             &m.name,
@@ -120,7 +115,6 @@ pub async fn load_model(
                         m.mesh.normals[i * 3 + 1],
                         m.mesh.normals[i * 3 + 2],
                     ],
-                    // We'll calculate these later
                     tangent: [0.0; 3],
                     bitangent: [0.0; 3],
                 })
