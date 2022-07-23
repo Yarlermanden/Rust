@@ -156,6 +156,7 @@ struct State {
     debug_material: model::Material,
     // NEW!
     mouse_pressed: bool,
+    full_screen: bool,
 }
 
 fn create_render_pipeline(
@@ -516,6 +517,7 @@ impl State {
             #[allow(dead_code)]
             debug_material,
             mouse_pressed: false,
+            full_screen: false,
         }
     }
 
@@ -541,7 +543,15 @@ impl State {
                         ..
                     },
                 ..
-            } => self.camera_controller.process_keyboard(*key, *state),
+            } => {
+                match key {
+                    VirtualKeyCode::Escape => {
+                        self.full_screen = false;
+                    }
+                    _ => {},
+                }
+                self.camera_controller.process_keyboard(*key, *state)
+            }
             WindowEvent::MouseWheel { delta, .. } => {
                 self.camera_controller.process_scroll(delta);
                 true
@@ -555,7 +565,31 @@ impl State {
                 self.mouse_pressed = *state == ElementState::Pressed;
                 if prev != self.mouse_pressed {
                     _ = window.set_cursor_grab(true);
-                    //window.set_maximized(true);
+                }
+                if !self.full_screen {
+                    #[cfg(target_arch="wasm32")] {
+                    use winit::platform::web::WindowExtWebSys;
+                    use winit::dpi::PhysicalSize;
+                    use web_sys::console;
+                    web_sys::window()
+                    .and_then(|win| win.document())
+                    .and_then(|doc| {
+                        let dst = doc.get_element_by_id("wasm-example")?;
+                        dst.request_fullscreen().and_then(|_| {
+                            let w = doc.body().map(|y| y.client_width()).unwrap();
+                            let w = if w < 2040 {w} else {2040};
+                            let h = doc.body().map(|y| y.client_height()).unwrap();
+                            let h = if h < 2040 {h} else {2040};
+                            console::log_1(&w.into());
+                            console::log_1(&h.into());
+                            window.set_inner_size(PhysicalSize::new(h, w));
+                            Ok(Some(()))
+                        });
+                        Some(())
+                    })
+                    .expect("Couldn't append canvas to document body.");
+                    }
+                    self.full_screen = true;
                 }
                 true
             }
@@ -564,7 +598,6 @@ impl State {
     }
 
     fn update(&mut self, dt: std::time::Duration) {
-        // UPDATED!
         self.camera_controller.update_camera(&mut self.camera, dt);
         self.camera_uniform
             .update_view_proj(&self.camera, &self.projection);
@@ -666,16 +699,14 @@ pub async fn run() {
         .build(&event_loop)
         .unwrap();
     window.set_cursor_visible(false);
-    window.set_maximized(true);
     #[cfg(not(target_arch="wasm32"))]
     {
+        window.set_maximized(true);
         _ = window.set_cursor_grab(true);
     }
-
     #[cfg(target_arch = "wasm32")]
     {
-        // Winit prevents sizing with CSS, so we have to set
-        // the size manually when on web.
+        //window.set_fullscreen(Some(winit::window::Fullscren::Borderless(None)));
         use winit::dpi::PhysicalSize;
         window.set_inner_size(PhysicalSize::new(1080, 1080));
 
@@ -689,19 +720,18 @@ pub async fn run() {
                 Some(())
             })
             .expect("Couldn't append canvas to document body.");
+        /*
+        let mut monitor = event_loop
+            .available_monitors()
+            .next()
+            .expect("no monitor found!");
+        println!("Monitor: {:?}", monitor.name());
+        let mut mode = monitor.video_modes().next().expect("no mode found");
+        let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
+        println!("Setting mode: {fullscreen:?}");
+        window.set_fullscreen(fullscreen);
+        */
     }
-
-    /*
-    let mut monitor = event_loop
-        .available_monitors()
-        .next()
-        .expect("no monitor found!");
-    println!("Monitor: {:?}", monitor.name());
-    let mut mode = monitor.video_modes().next().expect("no mode found");
-    let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
-    println!("Setting mode: {fullscreen:?}");
-    //window.set_fullscreen(fullscreen);
-    */
 
     let mut state = State::new(&window).await;
     let mut last_render_time = instant::Instant::now();
