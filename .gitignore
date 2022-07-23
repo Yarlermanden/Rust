@@ -5,3 +5,7 @@
 /RustFrontend/dist
 /project3/project/target/*
 /project3/project/pkg/*
+/project3/project/Cargo.lock
+/project3/Raytracing/target/*
+/project3/Raytracing/pkg/*
+/project3/Raytracing/Cargo.lock
