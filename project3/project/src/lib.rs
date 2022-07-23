@@ -137,9 +137,9 @@ struct State {
     config: wgpu::SurfaceConfiguration,
     render_pipeline: wgpu::RenderPipeline,
     obj_model: model::Model,
-    camera: camera::Camera,                      // UPDATED!
-    projection: camera::Projection,              // NEW!
-    camera_controller: camera::CameraController, // UPDATED!
+    camera: camera::Camera,
+    projection: camera::Projection,
+    camera_controller: camera::CameraController,
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
@@ -154,7 +154,6 @@ struct State {
     light_render_pipeline: wgpu::RenderPipeline,
     #[allow(dead_code)]
     debug_material: model::Material,
-    // NEW!
     mouse_pressed: bool,
     full_screen: bool,
 }
@@ -194,11 +193,8 @@ fn create_render_pipeline(
             strip_index_format: None,
             front_face: wgpu::FrontFace::Ccw,
             cull_mode: Some(wgpu::Face::Back),
-            // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
             polygon_mode: wgpu::PolygonMode::Fill,
-            // Requires Features::DEPTH_CLIP_CONTROL
             unclipped_depth: false,
-            // Requires Features::CONSERVATIVE_RASTERIZATION
             conservative: false,
         },
         depth_stencil: depth_format.map(|format| wgpu::DepthStencilState {
@@ -213,8 +209,6 @@ fn create_render_pipeline(
             mask: !0,
             alpha_to_coverage_enabled: false,
         },
-        // If the pipeline will be used with a multiview render pass, this
-        // indicates how many array layers the attachments will have.
         multiview: None,
     })
 }
@@ -222,9 +216,6 @@ fn create_render_pipeline(
 impl State {
     async fn new(window: &Window) -> Self {
         let size = window.inner_size();
-
-        // The instance is a handle to our GPU
-        // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(wgpu::Backends::all());
         let surface = unsafe { instance.create_surface(window) };
         let adapter = instance
@@ -240,8 +231,6 @@ impl State {
                 &wgpu::DeviceDescriptor {
                     label: None,
                     features: wgpu::Features::empty(),
-                    // WebGL doesn't support all of wgpu's features, so if
-                    // we're building for the web we'll have to disable some.
                     limits: 
                     {
                         let mut x = if cfg!(target_arch = "wasm32") {
@@ -249,11 +238,11 @@ impl State {
                         } else {
                             wgpu::Limits::default()
                         };
-                        x.max_texture_dimension_2d = 4096;
+                        x.max_texture_dimension_2d = 8192;
                         x
                     },
                 },
-                None, // Trace path
+                None,
             )
             .await
             .unwrap();
@@ -287,7 +276,6 @@ impl State {
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
-                    // normal map
                     wgpu::BindGroupLayoutEntry {
                         binding: 2,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -308,7 +296,6 @@ impl State {
                 label: Some("texture_bind_group_layout"),
             });
 
-        // UPDATED!
         let camera = camera::Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0));
         let projection =
             camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
@@ -574,39 +561,6 @@ impl State {
                 if !self.full_screen {
                     #[cfg(target_arch="wasm32")] {
                     window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
-                    /*
-                    use winit::platform::web::WindowExtWebSys;
-                    use winit::dpi::PhysicalSize;
-                    use web_sys::console;
-                    use wasm_bindgen::JsCast;
-                    let my_closure = Closure::<dyn Fn()>::new(move || {
-                    //let my_closure = Closure::wrap(Box::new(|| {
-                        //let w = doc.body().map(|x| x.client_width()).unwrap();
-                        //let h = doc.body().map(|x| x.client_height()).unwrap();
-                        let w = 500;
-                        let h = 500;
-                        //let w = dst.client_width();
-                        //let h = dst.client_height();
-                        console::log_1(&w.into());
-                        console::log_1(&h.into());
-                        //window.set_inner_size(PhysicalSize::new(w, h));
-                    });
-
-                    window.set_inner_size(PhysicalSize::new(200, 200));
-                    web_sys::window()
-                    .and_then(|win| win.document())
-                    .and_then(|doc| {
-                        let dst = doc.get_element_by_id("wasm-example")?;
-
-                        //}) as Box<dyn FnMut()>);
-                        //dst.request_fullscreen().and_then(|_| {
-                        doc.add_event_listener_with_callback("fullscreenchange", my_closure.as_ref().unchecked_ref());
-                        //doc.add_event_listener_with_callback("fullscreenchange", js_sys::Function::new_no_args);
-                        doc.body()?.request_fullscreen();
-                        Some(())
-                    })
-                    .expect("Couldn't append canvas to document body.");
-                    */
                     }
                     self.full_screen = true;
                 }
@@ -626,7 +580,6 @@ impl State {
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
 
-        // Update the light
         let old_position: cgmath::Vector3<_> = self.light_uniform.position.into();
         self.light_uniform.position =
             (cgmath::Quaternion::from_axis_angle((0.0, 1.0, 0.0).into(), cgmath::Deg(1.0))
@@ -710,7 +663,6 @@ pub async fn run() {
             env_logger::init();
         }
     }
-
     let event_loop = EventLoop::new();
     let title = env!("CARGO_PKG_NAME");
     let window = winit::window::WindowBuilder::new()
@@ -725,9 +677,6 @@ pub async fn run() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        //use winit::dpi::PhysicalSize;
-        //window.set_inner_size(PhysicalSize::new(1080, 1080));
-
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()
             .and_then(|win| win.document())
@@ -738,17 +687,6 @@ pub async fn run() {
                 Some(())
             })
             .expect("Couldn't append canvas to document body.");
-        /*
-        let mut monitor = event_loop
-            .available_monitors()
-            .next()
-            .expect("no monitor found!");
-        println!("Monitor: {:?}", monitor.name());
-        let mut mode = monitor.video_modes().next().expect("no mode found");
-        let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
-        println!("Setting mode: {fullscreen:?}");
-        window.set_fullscreen(fullscreen);
-        */
     }
 
     let mut state = State::new(&window).await;
@@ -810,11 +748,8 @@ pub async fn run() {
                 state.update(dt);
                 match state.render() {
                     Ok(_) => {}
-                    // Reconfigure the surface if it's lost or outdated
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => state.resize(state.size),
-                    // The system is out of memory, we should probably quit
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                    // We're ignoring timeouts
                     Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
                 }
             }
