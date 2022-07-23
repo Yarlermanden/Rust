@@ -1,4 +1,4 @@
-use std::iter;
+use std::{iter, default};
 
 use cgmath::prelude::*;
 use wgpu::util::DeviceExt;
@@ -242,10 +242,15 @@ impl State {
                     features: wgpu::Features::empty(),
                     // WebGL doesn't support all of wgpu's features, so if
                     // we're building for the web we'll have to disable some.
-                    limits: if cfg!(target_arch = "wasm32") {
-                        wgpu::Limits::downlevel_webgl2_defaults()
-                    } else {
-                        wgpu::Limits::default()
+                    limits: 
+                    {
+                        let mut x = if cfg!(target_arch = "wasm32") {
+                            wgpu::Limits::downlevel_webgl2_defaults()
+                        } else {
+                            wgpu::Limits::default()
+                        };
+                        x.max_texture_dimension_2d = 4096;
+                        x
                     },
                 },
                 None, // Trace path
@@ -568,26 +573,40 @@ impl State {
                 }
                 if !self.full_screen {
                     #[cfg(target_arch="wasm32")] {
+                    window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+                    /*
                     use winit::platform::web::WindowExtWebSys;
                     use winit::dpi::PhysicalSize;
                     use web_sys::console;
+                    use wasm_bindgen::JsCast;
+                    let my_closure = Closure::<dyn Fn()>::new(move || {
+                    //let my_closure = Closure::wrap(Box::new(|| {
+                        //let w = doc.body().map(|x| x.client_width()).unwrap();
+                        //let h = doc.body().map(|x| x.client_height()).unwrap();
+                        let w = 500;
+                        let h = 500;
+                        //let w = dst.client_width();
+                        //let h = dst.client_height();
+                        console::log_1(&w.into());
+                        console::log_1(&h.into());
+                        //window.set_inner_size(PhysicalSize::new(w, h));
+                    });
+
+                    window.set_inner_size(PhysicalSize::new(200, 200));
                     web_sys::window()
                     .and_then(|win| win.document())
                     .and_then(|doc| {
                         let dst = doc.get_element_by_id("wasm-example")?;
-                        dst.request_fullscreen().and_then(|_| {
-                            let w = doc.body().map(|y| y.client_width()).unwrap();
-                            let w = if w < 2040 {w} else {2040};
-                            let h = doc.body().map(|y| y.client_height()).unwrap();
-                            let h = if h < 2040 {h} else {2040};
-                            console::log_1(&w.into());
-                            console::log_1(&h.into());
-                            window.set_inner_size(PhysicalSize::new(h, w));
-                            Ok(Some(()))
-                        });
+
+                        //}) as Box<dyn FnMut()>);
+                        //dst.request_fullscreen().and_then(|_| {
+                        doc.add_event_listener_with_callback("fullscreenchange", my_closure.as_ref().unchecked_ref());
+                        //doc.add_event_listener_with_callback("fullscreenchange", js_sys::Function::new_no_args);
+                        doc.body()?.request_fullscreen();
                         Some(())
                     })
                     .expect("Couldn't append canvas to document body.");
+                    */
                     }
                     self.full_screen = true;
                 }
@@ -706,9 +725,8 @@ pub async fn run() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        //window.set_fullscreen(Some(winit::window::Fullscren::Borderless(None)));
-        use winit::dpi::PhysicalSize;
-        window.set_inner_size(PhysicalSize::new(1080, 1080));
+        //use winit::dpi::PhysicalSize;
+        //window.set_inner_size(PhysicalSize::new(1080, 1080));
 
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()
