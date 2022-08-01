@@ -1,4 +1,5 @@
 use std::iter;
+use wgpu::util::DeviceExt;
 
 use winit::{
     event::*,
@@ -10,7 +11,7 @@ use winit::{
 use wasm_bindgen::prelude::*;
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct Pixel {
     position: [f32; 3],
 }
@@ -19,7 +20,25 @@ impl Pixel {
     fn new()-> Pixel {
         Pixel { position: [0.0, 0.0, 0.0] }
     }
+
+    fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Pixel>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 0,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+            ],
+        }
+    }
+
 }
+
+const PIXELAMOUNT: usize = 400;
+const TOTALPIXELS: usize = PIXELAMOUNT*PIXELAMOUNT;
 
 struct State {
     surface: wgpu::Surface,
@@ -28,6 +47,9 @@ struct State {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
+    //pixels: [Pixel; PIXELAMOUNT*PIXELAMOUNT]
+    pixels: Vec<Pixel>
 }
 
 impl State {
@@ -69,15 +91,33 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        const pixelAmount: usize = 400;
-        let mut pixels: [Pixel; pixelAmount*pixelAmount] = [Pixel::new(); 160000];
-        for x in 0..pixelAmount {
-            for y in 0..pixelAmount {
-                let position = x*pixelAmount + y;
-                pixels[position].position[0] = x as f32;
-                pixels[position].position[1] = y as f32;
+        //let pixel = Pixel { position: [0.0, 0.0, 0.0]};
+        //let pixels: [Pixel; TOTALPIXELS] = [pixel; TOTALPIXELS];
+
+        /*
+        let pixels = std::iter::repeat_with(|| Pixel::new())
+            .take(TOTALPIXELS)
+            .collect::<Vec<_>>();
+        */
+        let mut pixels: Vec<Pixel> = Vec::with_capacity(TOTALPIXELS);
+
+        for x in 0..PIXELAMOUNT {
+            for y in 0..PIXELAMOUNT {
+                //let position = x*PIXELAMOUNT + y;
+                //pixels[position].position[0] = x as f32;
+                //pixels[position].position[1] = y as f32;
+                pixels.push(Pixel{ position: [(x as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, y as f32 / PIXELAMOUNT as f32, 0.0] });
             }
         }
+
+        let vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(&pixels),
+                //contents: bytemuck::cast_slice(PIXELS),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -97,7 +137,9 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[],
+                buffers: &[
+                    Pixel::desc(),
+                ],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -112,7 +154,7 @@ impl State {
                 })],
             }),
             primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
+                topology: wgpu::PrimitiveTopology::PointList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
@@ -136,6 +178,8 @@ impl State {
             size,
             config,
             render_pipeline,
+            vertex_buffer,
+            pixels,
         }
     }
 
@@ -186,7 +230,9 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.draw(0..3, 0..1);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.draw(0..(TOTALPIXELS-1) as u32, 0..1);
+            //render_pass.draw(0..(PIXELAMOUNT*PIXELAMOUNT-1) as u32, 0..1);
         }
 
         self.queue.submit(iter::once(encoder.finish()));
