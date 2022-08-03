@@ -1,5 +1,6 @@
 use std::iter;
 use wgpu::util::DeviceExt;
+use cgmath::prelude::*;
 
 use winit::{
     event::*,
@@ -7,8 +8,31 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
+mod camera;
+
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct CameraUniform {
+    view_position: [f32; 4],
+    view_proj: [[f32; 4]; 4],
+}
+
+impl CameraUniform {
+    fn new() -> Self {
+        Self {
+            view_position: [0.0; 4],
+            view_proj: cgmath::Matrix4::identity().into(),
+        }
+    }
+
+    fn update_view_proj(&mut self, camera: &camera::Camera, projection: &camera::Projection) {
+        self.view_position = camera.position.to_homogeneous().into();
+        self.view_proj = (projection.calc_matrix() * camera.calc_matrix()).into()
+    }
+}
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -49,7 +73,12 @@ struct State {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     //pixels: [Pixel; PIXELAMOUNT*PIXELAMOUNT]
-    pixels: Vec<Pixel>
+    pixels: Vec<Pixel>,
+    camera: camera::Camera,
+    projection: camera::Projection,
+    camera_uniform: CameraUniform,
+    camera_buffer: wgpu::Buffer,
+    camera_bind_group: wgpu::BindGroup
 }
 
 impl State {
@@ -91,8 +120,42 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        //let pixel = Pixel { position: [0.0, 0.0, 0.0]};
-        //let pixels: [Pixel; TOTALPIXELS] = [pixel; TOTALPIXELS];
+        let camera = camera::Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0));
+        let projection =
+            camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
+
+        let mut camera_uniform = CameraUniform::new();
+        camera_uniform.update_view_proj(&camera, &projection);
+
+        let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Camera Buffer"),
+            contents: bytemuck::cast_slice(&[camera_uniform]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let camera_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+            label: Some("camera_bind_group_layout"),
+        });
+
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &camera_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }],
+            label: Some("camera_bind_group"),
+        });
 
         /*
         let pixels = std::iter::repeat_with(|| Pixel::new())
@@ -103,9 +166,6 @@ impl State {
 
         for x in 0..PIXELAMOUNT {
             for y in 0..PIXELAMOUNT {
-                //let position = x*PIXELAMOUNT + y;
-                //pixels[position].position[0] = x as f32;
-                //pixels[position].position[1] = y as f32;
                 pixels.push(Pixel{ position: [(x as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, y as f32 / PIXELAMOUNT as f32, 0.0] });
             }
         }
@@ -180,6 +240,11 @@ impl State {
             render_pipeline,
             vertex_buffer,
             pixels,
+            camera,
+            projection,
+            camera_uniform,
+            camera_buffer,
+            camera_bind_group
         }
     }
 
@@ -231,8 +296,8 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
             render_pass.draw(0..(TOTALPIXELS-1) as u32, 0..1);
-            //render_pass.draw(0..(PIXELAMOUNT*PIXELAMOUNT-1) as u32, 0..1);
         }
 
         self.queue.submit(iter::once(encoder.finish()));
