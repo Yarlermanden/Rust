@@ -18,19 +18,27 @@ use wasm_bindgen::prelude::*;
 struct CameraUniform {
     view_position: [f32; 4],
     view_proj: [[f32; 4]; 4],
+    view_mat: [[f32; 4]; 4],
+    proj_mat: [[f32; 4]; 4],
 }
 
 impl CameraUniform {
     fn new() -> Self {
         Self {
             view_position: [0.0; 4],
+            view_mat: cgmath::Matrix4::identity().into(),
+            proj_mat: cgmath::Matrix4::identity().into(),
             view_proj: cgmath::Matrix4::identity().into(),
         }
     }
 
     fn update_view_proj(&mut self, camera: &camera::Camera, projection: &camera::Projection) {
         self.view_position = camera.position.to_homogeneous().into();
-        self.view_proj = (projection.calc_matrix() * camera.calc_matrix()).into()
+        let view = camera.calc_matrix();
+        let proj = projection.calc_matrix();
+        self.view_mat = view.inverse_transform().unwrap().into();
+        self.proj_mat = proj.inverse_transform().unwrap().into();
+        self.view_proj = (proj * view).into()
     }
 }
 
@@ -187,7 +195,9 @@ impl State {
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
+                bind_group_layouts: &[
+                    &camera_bind_group_layout,
+                ],
                 push_constant_ranges: &[],
             });
 
@@ -296,7 +306,7 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+            render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
             render_pass.draw(0..(TOTALPIXELS-1) as u32, 0..1);
         }
 
