@@ -18,16 +18,16 @@ use wasm_bindgen::prelude::*;
 struct CameraUniform {
     view_position: [f32; 4],
     view_proj: [[f32; 4]; 4],
-    view_mat: [[f32; 4]; 4],
-    proj_mat: [[f32; 4]; 4],
+    inv_view_mat: [[f32; 4]; 4],
+    inv_proj_mat: [[f32; 4]; 4],
 }
 
 impl CameraUniform {
     fn new() -> Self {
         Self {
             view_position: [0.0; 4],
-            view_mat: cgmath::Matrix4::identity().into(),
-            proj_mat: cgmath::Matrix4::identity().into(),
+            inv_view_mat: cgmath::Matrix4::identity().into(),
+            inv_proj_mat: cgmath::Matrix4::identity().into(),
             view_proj: cgmath::Matrix4::identity().into(),
         }
     }
@@ -36,8 +36,8 @@ impl CameraUniform {
         self.view_position = camera.position.to_homogeneous().into();
         let view = camera.calc_matrix();
         let proj = projection.calc_matrix();
-        self.view_mat = view.inverse_transform().unwrap().into();
-        self.proj_mat = proj.inverse_transform().unwrap().into();
+        self.inv_view_mat = view.inverse_transform().unwrap().into();
+        self.inv_proj_mat = proj.inverse_transform().unwrap().into();
         self.view_proj = (proj * view).into()
     }
 }
