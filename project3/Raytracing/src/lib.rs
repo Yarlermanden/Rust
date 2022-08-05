@@ -9,6 +9,7 @@ use winit::{
 };
 
 mod camera;
+mod model;
 
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
@@ -86,7 +87,10 @@ struct State {
     projection: camera::Projection,
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
-    camera_bind_group: wgpu::BindGroup
+    camera_bind_group: wgpu::BindGroup,
+    model: model::Model,
+    model_buffer: wgpu::Buffer,
+    model_bind_group: wgpu::BindGroup,
 }
 
 impl State {
@@ -165,6 +169,39 @@ impl State {
             label: Some("camera_bind_group"),
         });
 
+        let mut model = model::Model::new();
+        model.update_current_time();
+
+        let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Model Buffer"),
+            contents: bytemuck::cast_slice(&[model]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let model_bind_group_layout = 
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+            label: Some("model_bind_group_layout"),
+        });
+
+        let model_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &model_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: model_buffer.as_entire_binding(),
+            }],
+            label: Some("model_bind_group"),
+        });
+
         /*
         let pixels = std::iter::repeat_with(|| Pixel::new())
             .take(TOTALPIXELS)
@@ -197,6 +234,7 @@ impl State {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
                     &camera_bind_group_layout,
+                    &model_bind_group_layout,
                 ],
                 push_constant_ranges: &[],
             });
@@ -254,7 +292,10 @@ impl State {
             projection,
             camera_uniform,
             camera_buffer,
-            camera_bind_group
+            camera_bind_group,
+            model,
+            model_buffer,
+            model_bind_group,
         }
     }
 
@@ -272,7 +313,9 @@ impl State {
         false
     }
 
-    fn update(&mut self) {}
+    fn update(&mut self) {
+        self.model.update_current_time();
+    }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
@@ -307,6 +350,7 @@ impl State {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
+            render_pass.set_bind_group(1, &self.model_bind_group, &[]);
             render_pass.draw(0..(TOTALPIXELS-1) as u32, 0..1);
         }
 

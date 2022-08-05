@@ -7,7 +7,11 @@ struct Camera {
 @group(0) @binding(0)
 var<uniform> camera: Camera;
 
-let _rt_Time: f32 = 0.2;
+struct Model {
+    current_time: f32,
+}
+@group(1) @binding(0)
+var<uniform> model: Model;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -18,8 +22,6 @@ struct VertexOutput {
     @location(0) view_pos: vec3<f32>,
     @location(1) color: vec3<f32>,
 };
-
-
 
 
 @vertex
@@ -36,21 +38,19 @@ fn vs_main(
 
 
 
-//const _rm_MaxRays: i32 = 100;
-let _rm_MaxRays: i32 = 100;
+
+let _rm_MaxRays: i32 = 2;
 fn getInfinity() -> f32 { return 1.0 / 0.0; }
 
 struct Ray
 {
-    //point: vec3<f32>,
     location: vec3<f32>,
     direction: vec3<f32>,
     colorFilter: vec3<f32>,
 };
 
-//var _rt_pendingRays: [Ray; _rm_MaxRays];
-var<workgroup> _rt_pendingRays: array<Ray, 100>;
-var<workgroup> _rt_rayCount: i32;
+//var _rt_pendingRays: array<Ray, 100>;
+//var _rt_rayCount: i32;
 
 struct Material
 {
@@ -59,7 +59,6 @@ struct Material
 
 struct Output
 {
-    //point vec3<f32>;
     location: vec3<f32>,
     normal: vec3<f32>,
     refractPoint: vec3<f32>,
@@ -79,13 +78,16 @@ struct Distance
     d: f32,
 };
 
-//need pointer to distance and o
+struct Globals {
+    rayCount: i32,
+    pendingRays: array<Ray, _rm_MaxRays>,
+};
+
 fn raySphereIntersection(ray: Ray, sphere: Sphere, distance: ptr<function, f32>, o: ptr<function, Output>) -> bool
 {
     var hit = false;
 
     let m: vec3<f32> = ray.location - sphere.center;
-
     let b = dot(m, ray.direction);
     let c = dot(m, m) - sphere.radius * sphere.radius;
 
@@ -95,16 +97,12 @@ fn raySphereIntersection(ray: Ray, sphere: Sphere, distance: ptr<function, f32>,
         if (discr >= 0.0)
         {
             let d = max(-b - sqrt(discr), 0.0);
-
             if (d < *distance)
             {
                 *distance = d;
-
-
                 (*o).location = ray.location + d * ray.direction;
                 (*o).normal = normalize((*o).location - sphere.center);
                 (*o).material = sphere.material;
-
                 hit = true;
             }
         }
@@ -119,6 +117,7 @@ fn castRay(ray: Ray, distance: ptr<function, f32>, o: ptr<function, Output>) -> 
     sphere.center = vec3<f32>(0.0, 0.0, -10.0);
     sphere.radius = 2.0;
     sphere.material.color = vec3<f32>(1.0);
+    let _rt_Time = model.current_time;
 
     var hit = false;
     for (var i = 1; i <= 10; i+=1)
@@ -144,17 +143,17 @@ fn ProcessOutput(ray: Ray, o: Output) -> vec3<f32>
     return o.material.color;
 }
 
-fn PushRay(location: vec3<f32>, direction: vec3<f32>, colorFilter: vec3<f32>) -> bool 
+fn PushRay(location: vec3<f32>, direction: vec3<f32>, colorFilter: vec3<f32>, g: ptr<function, Globals>) -> bool 
 {
     var pushed = false;
-    if (_rt_rayCount < _rm_MaxRays)
+    if ((*g).rayCount < _rm_MaxRays)
     {
         var ray: Ray;
         ray.location = location + 0.001 * direction;
         ray.direction = direction;
         ray.colorFilter = colorFilter;
-        _rt_pendingRays[_rt_rayCount] = ray;
-        _rt_rayCount+=1;
+        (*g).pendingRays[(*g).rayCount] = ray;
+        (*g).rayCount+=1;
         pushed = true;
     }
     return pushed;
@@ -163,13 +162,18 @@ fn PushRay(location: vec3<f32>, direction: vec3<f32>, colorFilter: vec3<f32>) ->
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>
 {
-    _rt_rayCount = 0;
-    PushRay(in.view_pos, normalize(in.view_pos), vec3<f32>(1.0));
+    //var _rt_pendingRays: array<Ray, 100>;
+    var global:  Globals;
+    global.rayCount = 0;
+    //global.pendingRays = new Array<Ray, 100>();
+
+    //let color = vec3<f32>(0.4);
+    PushRay(in.view_pos, normalize(in.view_pos), vec3<f32>(1.0), &global);
 
     var color = vec3<f32>(0.0);
-    for (var i = 0; i < _rt_rayCount; i+=1)
+    for (var i = 0; i < global.rayCount; i+=1)
     {
-        var ray: Ray = _rt_pendingRays[i];
+        var ray: Ray = global.pendingRays[i];
         var o: Output;
         var distance: f32 = getInfinity();
         if (castRay(ray, &distance, &o))
