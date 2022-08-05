@@ -69,7 +69,7 @@ impl Pixel {
 
 }
 
-const PIXELAMOUNT: usize = 400;
+const PIXELAMOUNT: usize = 800;
 const TOTALPIXELS: usize = PIXELAMOUNT*PIXELAMOUNT;
 
 struct State {
@@ -174,7 +174,7 @@ impl State {
 
         for x in 0..PIXELAMOUNT {
             for y in 0..PIXELAMOUNT {
-                pixels.push(Pixel{ position: [(x as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, y as f32 / PIXELAMOUNT as f32, 0.0] });
+                pixels.push(Pixel{ position: [(x as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, (y as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, 0.0] });
             }
         }
 
