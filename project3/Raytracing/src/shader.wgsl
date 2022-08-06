@@ -9,6 +9,9 @@ var<uniform> camera: Camera;
 
 struct Model {
     current_time: f32,
+    padding: f32,
+    padding2: f32,
+    padding3: f32,
 }
 @group(1) @binding(0)
 var<uniform> model: Model;

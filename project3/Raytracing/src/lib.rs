@@ -91,6 +91,7 @@ struct State {
     model: model::Model,
     model_buffer: wgpu::Buffer,
     model_bind_group: wgpu::BindGroup,
+    time: model::Instant,
 }
 
 impl State {
@@ -169,8 +170,9 @@ impl State {
             label: Some("camera_bind_group"),
         });
 
+        let time = model::Instant::now();
         let mut model = model::Model::new();
-        model.update_current_time();
+        model.update_current_time(time);
 
         let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Model Buffer"),
@@ -296,6 +298,7 @@ impl State {
             model,
             model_buffer,
             model_bind_group,
+            time,
         }
     }
 
@@ -314,7 +317,12 @@ impl State {
     }
 
     fn update(&mut self) {
-        self.model.update_current_time();
+        self.model.update_current_time(self.time);
+        self.queue.write_buffer(
+            &self.model_buffer,
+            0,
+            bytemuck::cast_slice(&[self.model]),
+        );
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
