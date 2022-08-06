@@ -204,11 +204,6 @@ impl State {
             label: Some("model_bind_group"),
         });
 
-        /*
-        let pixels = std::iter::repeat_with(|| Pixel::new())
-            .take(TOTALPIXELS)
-            .collect::<Vec<_>>();
-        */
         let mut pixels: Vec<Pixel> = Vec::with_capacity(TOTALPIXELS);
 
         for x in 0..PIXELAMOUNT {
@@ -386,7 +381,7 @@ pub async fn run() {
     #[cfg(target_arch = "wasm32")]
     {
         use winit::dpi::PhysicalSize;
-        window.set_inner_size(PhysicalSize::new(450, 400));
+        window.set_inner_size(PhysicalSize::new(800, 800));
         
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()

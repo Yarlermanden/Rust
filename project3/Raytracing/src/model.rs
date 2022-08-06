@@ -35,30 +35,9 @@ impl Model {
         let temp1 = (temp % (std::u32::MAX-1) as u128) as u32;
         //self.current_time = ((temp1 as usize) >> 4) as f32 / 1000;
         //self.current_time = temp1 as f32 / 100000.0;
-        self.current_time = temp1 as f32 / 428900000.0;
-        println!("{:.32}", self.current_time);
-        /*
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let temp = Instant::now()
-                .duration_since(earlier)
-                //.as_millis();
-                //.as_millis();
-                .as_nanos();
-            let temp1 = (temp % (std::u32::MAX-1) as u128) as u32;
-            //self.current_time = ((temp1 as usize) >> 4) as f32 / 1000;
-            //self.current_time = temp1 as f32 / 100000.0;
-            self.current_time = temp1 as f32 / 428900000.0;
-            println!("{:.32}", self.current_time);
-        }
-        #[cfg(target_arch = "wasm32")] 
-        {
-            //let temp = (performance_now() * 1000.0) as u64;
-            let temp = Instant::now()
-                .duration_since(earlier)
-                .as_nanos();
-        }
-        */
+        self.current_time = (temp1 as f32 / 4300000000.00) * 6.3;
+        //println!("{:.32}", temp1);
+        println!("{} : {}", temp1, self.current_time);
     }
 
 }
