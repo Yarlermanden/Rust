@@ -8,11 +8,48 @@ pub use std::time::*;
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct Sphere
+{
+    center: [f32; 3],
+    radius: f32,
+    material: Material,
+}
+
+impl Sphere {
+    pub fn new<> (
+    ) -> Self {
+        Self {
+            center: [0.0, 0.0, 0.0],
+            radius: 0.0,
+            material: Material::new(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct Material
+{
+    color: [f32; 3],
+    padding: f32,
+}
+
+impl Material {
+    pub fn new<> (
+    ) -> Self {
+        Self { color: [0.0, 0.0, 0.0], padding: 0.0 }
+    }
+}
+
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Model {
     current_time: f32,
     padding: f32,
     padding2: f32,
     padding3: f32,
+    sphere: Sphere,
 }
 
 impl Model {
@@ -23,6 +60,7 @@ impl Model {
             padding: 0.0,
             padding2: 0.0,
             padding3: 0.0,
+            sphere: Sphere::new(),
         }
     }
 

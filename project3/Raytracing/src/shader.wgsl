@@ -1,46 +1,3 @@
-struct Camera {
-    view_pos: vec4<f32>,
-    view_proj: mat4x4<f32>,
-    inv_view_mat: mat4x4<f32>,
-    inv_proj_mat: mat4x4<f32>,
-}
-@group(0) @binding(0)
-var<uniform> camera: Camera;
-
-struct Model {
-    current_time: f32,
-    padding: f32,
-    padding2: f32,
-    padding3: f32,
-}
-@group(1) @binding(0)
-var<uniform> model: Model;
-
-struct VertexInput {
-    @location(0) position: vec3<f32>,
-};
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) view_pos: vec3<f32>,
-    @location(1) color: vec3<f32>,
-};
-
-@vertex
-fn vs_main(
-    model: VertexInput,
-) -> VertexOutput {
-    var out: VertexOutput;
-    out.clip_position = vec4<f32>(model.position, 1.0);
-    var viewPos = camera.inv_proj_mat * out.clip_position;
-    out.view_pos = viewPos.xyz / viewPos.w;
-    out.color = model.position;
-    return out;
-}
-
-
-
-
 let _rm_MaxRays: i32 = 2;
 fn getInfinity() -> f32 { return 1.0 / 0.0; }
 
@@ -50,9 +7,6 @@ struct Ray
     direction: vec3<f32>,
     colorFilter: vec3<f32>,
 };
-
-//var _rt_pendingRays: array<Ray, 100>;
-//var _rt_rayCount: i32;
 
 struct Material
 {
@@ -84,6 +38,49 @@ struct Globals {
     rayCount: i32,
     pendingRays: array<Ray, _rm_MaxRays>,
 };
+
+
+struct Camera {
+    view_pos: vec4<f32>,
+    view_proj: mat4x4<f32>,
+    inv_view_mat: mat4x4<f32>,
+    inv_proj_mat: mat4x4<f32>,
+}
+@group(0) @binding(0)
+var<uniform> camera: Camera;
+
+struct Model {
+    current_time: f32,
+    padding: f32,
+    padding2: f32,
+    padding3: f32,
+    sphere: Sphere,
+}
+@group(1) @binding(0)
+var<uniform> model: Model;
+
+struct VertexInput {
+    @location(0) position: vec3<f32>,
+};
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) view_pos: vec3<f32>,
+    @location(1) color: vec3<f32>,
+};
+
+@vertex
+fn vs_main(
+    model: VertexInput,
+) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4<f32>(model.position, 1.0);
+    var viewPos = camera.inv_proj_mat * out.clip_position;
+    out.view_pos = viewPos.xyz / viewPos.w;
+    out.color = model.position;
+    return out;
+}
+
 
 fn raySphereIntersection(ray: Ray, sphere: Sphere, distance: ptr<function, f32>, o: ptr<function, Output>) -> bool
 {
