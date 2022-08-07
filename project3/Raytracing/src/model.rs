@@ -5,9 +5,11 @@ use wasm_bindgen::prelude::*;
 use std::convert::{TryInto};
 use std::ops::{Add, Sub, AddAssign, SubAssign};
 pub use std::time::*;
+use nalgebra::{geometry, Matrix};
+use nalgebra::base;
 
 #[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Sphere
 {
     center: [f32; 3],
@@ -20,14 +22,14 @@ impl Sphere {
     ) -> Self {
         Self {
             center: [0.0, 0.0, 0.0],
-            radius: 0.0,
+            radius: 2.0,
             material: Material::new(),
         }
     }
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Material
 {
     color: [f32; 3],
@@ -41,15 +43,15 @@ impl Material {
     }
 }
 
-
+const SPHERE_COUNT: usize = 10;
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Model {
     current_time: f32,
-    padding: f32,
+    sphere_count: i32,
     padding2: f32,
     padding3: f32,
-    sphere: Sphere,
+    spheres: [Sphere; SPHERE_COUNT],
 }
 
 impl Model {
@@ -57,10 +59,10 @@ impl Model {
     ) -> Self {
         Self {
             current_time: 0.0,
-            padding: 0.0,
+            sphere_count: SPHERE_COUNT as i32,
             padding2: 0.0,
             padding3: 0.0,
-            sphere: Sphere::new(),
+            spheres: std::iter::repeat_with(|| Sphere::new()).take(SPHERE_COUNT).collect::<Vec<_>>().try_into().unwrap(),
         }
     }
 
@@ -72,6 +74,17 @@ impl Model {
         self.current_time = (temp1 as f32 / 4300000000.00) * 6.3;
         //println!("{:.32}", temp1);
         //println!("{} : {}", temp1, self.current_time);
+    }
+
+    pub fn update_model(&mut self) {
+        for i in 0..self.sphere_count { 
+            let i2 = i as f32;
+            let offset = [(3.0*i2+self.current_time).sin() * 5.0, (2.0*i2+self.current_time).sin() * 5.0, (4.0*i2+self.current_time).sin() * 5.0];
+            //self.spheres[i].center = offset + [0.0, 0.0, -20.0];
+            self.spheres[i as usize].center = [offset[0], offset[1], -20.0 + offset[2]];
+            //self.spheres[i as usize].material.color = Matrix::normalize(offset) * 0.5 + 0.5;
+            self.spheres[i as usize].material.color = [0.5, 0.5, 0.5];
+        }
     }
 
 }

@@ -51,10 +51,10 @@ var<uniform> camera: Camera;
 
 struct Model {
     current_time: f32,
-    padding: f32,
+    sphere_count: i32,
     padding2: f32,
     padding3: f32,
-    sphere: Sphere,
+    spheres: array<Sphere, 10>,
 }
 @group(1) @binding(0)
 var<uniform> model: Model;
@@ -112,21 +112,12 @@ fn raySphereIntersection(ray: Ray, sphere: Sphere, distance: ptr<function, f32>,
 //output o....
 fn castRay(ray: Ray, distance: ptr<function, f32>, o: ptr<function, Output>) -> bool
 {
-    var sphere: Sphere;
-    sphere.center = vec3<f32>(0.0, 0.0, -10.0);
-    sphere.radius = 2.0;
-    sphere.material.color = vec3<f32>(1.0);
-    let _rt_Time = model.current_time;
-
     var hit = false;
-    for (var i = 1; i <= 10; i+=1)
-    {
-        let i2 = f32(i);
-        let offset = 5.0 * vec3<f32>(sin(3.0*i2+_rt_Time), sin(2.0*i2+_rt_Time), sin(4.0*i2+_rt_Time));
-        sphere.center = offset + vec3<f32>(0.0, 0.0, -20.0);
-        sphere.material.color = normalize(offset) * 0.5 + 0.5;
-        hit = raySphereIntersection(ray, sphere, distance, o) || hit;
+
+    for (var i = 0; i < model.sphere_count; i+=1) {
+        hit = raySphereIntersection(ray, model.spheres[i], distance, o) || hit;
     }
+
     return hit;
 }
 

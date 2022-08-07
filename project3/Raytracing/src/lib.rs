@@ -81,7 +81,6 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    //pixels: [Pixel; PIXELAMOUNT*PIXELAMOUNT]
     pixels: Vec<Pixel>,
     camera: camera::Camera,
     projection: camera::Projection,
@@ -173,6 +172,7 @@ impl State {
         let time = model::Instant::now();
         let mut model = model::Model::new();
         model.update_current_time(time);
+        model.update_model();
 
         let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Model Buffer"),
@@ -313,6 +313,7 @@ impl State {
 
     fn update(&mut self) {
         self.model.update_current_time(self.time);
+        self.model.update_model();
         self.queue.write_buffer(
             &self.model_buffer,
             0,
