@@ -207,12 +207,40 @@ fn rayboxIntersection(ray: Ray, box: Box, distance: ptr<function, f32>, o: ptr<f
             return false;
         }
     }
-    //if(o.lowestTransparency > box.material.transparency) o.lowestTransparency = box.material.transparency;
+    //if((*o).lowestTransparency > box.material.transparency) o.lowestTransparency = box.material.transparency;
     if(d >= *distance) {
         return false; //Another object is closer
     }
     //------- It has hit --------
     *distance = d;
+    (*o).location = ray.location + d * ray.direction;
+    (*o).material = box.material;
+    //(*o).normal = normalize((*o).location - .center);
+
+    if(abs((*o).location.x - box.bounds[0].x) < 0.001 || abs((*o).location.x - box.bounds[1].x) < 0.01) {
+        if(ray.direction.x > 0.0) {
+            (*o).normal = vec3<f32>(-1.0, 0.0, 0.0);
+        }
+        else {
+            (*o).normal = vec3<f32>(1.0, 0.0, 0.0);
+        }
+    }
+    else if(abs((*o).location.y - box.bounds[0].y) < 0.001 || abs((*o).location.y - box.bounds[1].y) < 0.01) {
+        if(ray.direction.y > 0.0) {
+            (*o).normal = vec3<f32>(0.0, -1.0, 0.0);
+        }
+        else {
+            (*o).normal = vec3<f32>(0.0, 1.0, 0.0);
+        }
+    }
+    else if(abs((*o).location.z - box.bounds[0].z) < 0.001 || abs((*o).location.z - box.bounds[1].z) < 0.01) {
+        if(ray.direction.z > 0.0) {
+            (*o).normal = vec3<f32>(0.0, 0.0, -1.0);
+        }
+        else {
+            (*o).normal = vec3<f32>(0.0, 0.0, 1.0);
+        }
+    }
     return true;
 }
 

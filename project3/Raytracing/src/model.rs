@@ -157,9 +157,15 @@ impl Model {
         s[9].material.color = [0.5, 0.5, 0.8];
         let mut b: [Box; BOX_COUNT] = std::iter::repeat_with(|| Box::new()).take(BOX_COUNT).collect::<Vec<_>>().try_into().unwrap();
         b[0].bounds = [[-20.0, 0.0, 0.0, 0.0], [-5.0, 10.0, 5.0, 0.0]];
+        b[0].material.color = [0.8, 0.5, 0.3];
         b[1].bounds = [[-70.0, -11.0, -100.0, 0.0], [70.0, -10.0, 50.0, 0.0]];
+        b[1].material.color = [0.2, 0.7, 0.5];
         b[2].bounds = [[-70.0, -11.0, -100.0, 0.0], [-69.0, 60.0, 50.0, 0.0]];
+        b[2].material = Material::get_metal();
+        b[2].material.color = [0.2, 0.1, 0.9];
+        b[1].material.color = [0.2, 0.7, 0.5];
         b[3].bounds = [[69.0, -11.0, -100.0, 0.0], [70.0, 60., 50.0, 0.0]];
+        b[3].material.color = [0.9, 0.2, 0.9];
         Self {
             current_time: 0.0,
             sphere_count: SPHERE_COUNT as i32,
