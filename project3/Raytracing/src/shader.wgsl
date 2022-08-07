@@ -1,5 +1,7 @@
 let _rm_MaxRays: i32 = 2;
 fn getInfinity() -> f32 { return 1.0 / 0.0; }
+let SPHERE_COUNT: i32 = 10;
+let LIGHT_COUNT: i32 = 1;
 
 struct Ray
 {
@@ -11,6 +13,13 @@ struct Ray
 struct Material
 {
     color: vec3<f32>,
+    padding: f32,
+
+    //PhongLighting
+    I_aK_a: f32, //I_a * K_a
+    diffuse: f32, //I Kdf
+    Ks: f32, //specular reflectance
+    exp: f32, //specular exponent
 };
 
 struct Output
@@ -21,6 +30,14 @@ struct Output
     refractDirection: vec3<f32>,
     material: Material,
 };
+
+struct Light 
+{
+    location: vec3<f32>,
+    padding: f32,
+    color: vec3<f32>,
+    padding2: f32,
+}
 
 struct Sphere
 {
@@ -54,7 +71,8 @@ struct Model {
     sphere_count: i32,
     padding2: f32,
     padding3: f32,
-    spheres: array<Sphere, 10>,
+    spheres: array<Sphere, SPHERE_COUNT>,
+    lights: array<Light, LIGHT_COUNT>,
 }
 @group(1) @binding(0)
 var<uniform> model: Model;
@@ -128,9 +146,31 @@ fn castRay1(ray: Ray, distance: ptr<function, f32>) -> bool
     return castRay(ray, distance, &output);
 }
 
+fn PhongLighting(ray: Ray, o: Output) -> vec3<f32> {
+    let R_ambient: vec3<f32> = o.material.I_aK_a * o.material.color; //Ia * Ka * color
+    var col: vec3<f32> = R_ambient;
+
+    for(var i = 0; i < LIGHT_COUNT; i+=1) {
+        let L: vec3<f32> = normalize(model.lights[i].location - o.location); //light direction
+        let R_diffuse: vec3<f32> = model.lights[i].color * o.material.diffuse * max(dot(o.normal, L), 0.0) * o.material.color; //I_light * Kd * (N•L) * Color
+
+        let V: vec3<f32> = -ray.direction; //view direction
+        let H: vec3<f32> = normalize(L+V); //halfway vector between light direction and view direction
+        let R_specular: vec3<f32> = model.lights[i].color * o.material.Ks * pow(max(dot(o.normal, H), 0.0), o.material.exp); //I_light * Ks * (N•H)^exp
+
+        let distance: f32 = length(model.lights[i].location - o.location);
+        let attenuation: f32 = 1.0/pow(distance,2.0);
+
+        //col += o.invAmountOfShadow[i] * attenuation * (R_diffuse + R_specular);
+        col += attenuation * (R_diffuse + R_specular);
+    }
+    return col;
+}
+
 fn ProcessOutput(ray: Ray, o: Output) -> vec3<f32>
 {
-    return o.material.color;
+    //return o.material.color;
+    return PhongLighting(ray, o);
 }
 
 fn PushRay(location: vec3<f32>, direction: vec3<f32>, colorFilter: vec3<f32>, g: ptr<function, Globals>) -> bool 

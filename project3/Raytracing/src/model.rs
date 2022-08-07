@@ -8,6 +8,30 @@ pub use std::time::*;
 use nalgebra::{geometry, Matrix};
 use nalgebra::base;
 
+const LIGHT_COUNT: usize = 1;
+const SPHERE_COUNT: usize = 10;
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Light{
+    location: [f32; 3],
+    padding: f32,
+    color: [f32; 3],
+    padding2: f32,
+}
+
+impl Light {
+    pub fn new<> (
+    ) -> Self {
+        Self { 
+            location: [10.0, 10.0, 10.0],
+            padding: 0.0,
+            color: [1.0, 1.0, 1.0], 
+            padding2: 0.0,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Sphere
@@ -34,16 +58,28 @@ struct Material
 {
     color: [f32; 3],
     padding: f32,
+
+    //PhongLighting
+    I_aK_a: f32, //I_a * K_a
+    diffuse: f32, //I Kdf
+    Ks: f32, //specular reflectance
+    exp: f32, //specular exponent
 }
 
 impl Material {
     pub fn new<> (
     ) -> Self {
-        Self { color: [0.5, 0.5, 0.5], padding: 0.0 }
+        Self { 
+            color: [0.5, 0.5, 0.5], 
+            padding: 0.0,
+            I_aK_a: 0.05, 
+            diffuse: 2.0,
+            Ks: 0.01,
+            exp: 0.001,
+        }
     }
 }
 
-const SPHERE_COUNT: usize = 10;
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Model {
@@ -52,6 +88,7 @@ pub struct Model {
     padding2: f32,
     padding3: f32,
     spheres: [Sphere; SPHERE_COUNT],
+    lights: [Light; LIGHT_COUNT],
 }
 
 impl Model {
@@ -76,6 +113,7 @@ impl Model {
             padding2: 0.0,
             padding3: 0.0,
             spheres: s,
+            lights: std::iter::repeat_with(|| Light::new()).take(LIGHT_COUNT).collect::<Vec<_>>().try_into().unwrap(),
         }
     }
 
