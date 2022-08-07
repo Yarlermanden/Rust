@@ -70,7 +70,7 @@ impl Pixel {
 
 }
 
-const PIXELAMOUNT: usize = 800;
+const PIXELAMOUNT: usize = 1600;
 const TOTALPIXELS: usize = PIXELAMOUNT*PIXELAMOUNT;
 
 struct State {
@@ -382,7 +382,7 @@ pub async fn run() {
     #[cfg(target_arch = "wasm32")]
     {
         use winit::dpi::PhysicalSize;
-        window.set_inner_size(PhysicalSize::new(800, 800));
+        window.set_inner_size(PhysicalSize::new(1600, 1600));
         
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()

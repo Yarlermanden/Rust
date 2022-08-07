@@ -39,7 +39,7 @@ struct Material
 impl Material {
     pub fn new<> (
     ) -> Self {
-        Self { color: [0.0, 0.0, 0.0], padding: 0.0 }
+        Self { color: [0.5, 0.5, 0.5], padding: 0.0 }
     }
 }
 
@@ -57,12 +57,25 @@ pub struct Model {
 impl Model {
     pub fn new<>(
     ) -> Self {
+        let mut s: [Sphere; SPHERE_COUNT] = std::iter::repeat_with(|| Sphere::new())
+            .take(SPHERE_COUNT).collect::<Vec<_>>()
+            .try_into().unwrap();
+        s[0].material.color = [0.0, 0.0, 0.5];
+        s[1].material.color = [0.0, 0.5, 0.0];
+        s[2].material.color = [0.5, 0.0, 0.0];
+        s[3].material.color = [0.5, 0.5, 0.0];
+        s[4].material.color = [0.0, 0.5, 0.5];
+        s[5].material.color = [0.5, 0.0, 0.5];
+        s[6].material.color = [0.5, 0.5, 0.5];
+        s[7].material.color = [0.8, 0.5, 0.5];
+        s[8].material.color = [0.5, 0.8, 0.5];
+        s[9].material.color = [0.5, 0.5, 0.8];
         Self {
             current_time: 0.0,
             sphere_count: SPHERE_COUNT as i32,
             padding2: 0.0,
             padding3: 0.0,
-            spheres: std::iter::repeat_with(|| Sphere::new()).take(SPHERE_COUNT).collect::<Vec<_>>().try_into().unwrap(),
+            spheres: s,
         }
     }
 
@@ -80,10 +93,9 @@ impl Model {
         for i in 0..self.sphere_count { 
             let i2 = i as f32;
             let offset = [(3.0*i2+self.current_time).sin() * 5.0, (2.0*i2+self.current_time).sin() * 5.0, (4.0*i2+self.current_time).sin() * 5.0];
-            //self.spheres[i].center = offset + [0.0, 0.0, -20.0];
             self.spheres[i as usize].center = [offset[0], offset[1], -20.0 + offset[2]];
             //self.spheres[i as usize].material.color = Matrix::normalize(offset) * 0.5 + 0.5;
-            self.spheres[i as usize].material.color = [0.5, 0.5, 0.5];
+            //self.spheres[i as usize].material.color = [0.5, 0.5, 0.5];
         }
     }
 
