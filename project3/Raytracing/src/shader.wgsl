@@ -1,4 +1,4 @@
-let _rm_MaxRays: i32 = 2;
+let _rm_MaxRays: i32 = 3;
 fn getInfinity() -> f32 { return 1.0 / 0.0; }
 let SPHERE_COUNT: i32 = 10;
 let LIGHT_COUNT: i32 = 1;
@@ -158,11 +158,12 @@ fn PhongLighting(ray: Ray, o: Output) -> vec3<f32> {
         let H: vec3<f32> = normalize(L+V); //halfway vector between light direction and view direction
         let R_specular: vec3<f32> = model.lights[i].color * o.material.Ks * pow(max(dot(o.normal, H), 0.0), o.material.exp); //I_light * Ks * (N•H)^exp
 
-        let distance: f32 = length(model.lights[i].location - o.location);
-        let attenuation: f32 = 1.0/pow(distance,2.0);
+        //let distance: f32 = length(model.lights[i].location - o.location);
+        //let attenuation: f32 = 1.0/pow(distance,2.0);
 
         //col += o.invAmountOfShadow[i] * attenuation * (R_diffuse + R_specular);
-        col += attenuation * (R_diffuse + R_specular);
+        //col += attenuation * (R_diffuse + R_specular);
+        col += R_diffuse + R_specular;
     }
     return col;
 }

@@ -24,8 +24,9 @@ impl Light {
     pub fn new<> (
     ) -> Self {
         Self { 
-            location: [10.0, 10.0, 10.0],
+            location: [-10.0, 30.0, 30.0],
             padding: 0.0,
+            //color: [10000.0, 10000.0, 10000.0], 
             color: [1.0, 1.0, 1.0], 
             padding2: 0.0,
         }
