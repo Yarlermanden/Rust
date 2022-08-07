@@ -92,6 +92,8 @@ struct State {
     model_buffer: wgpu::Buffer,
     model_bind_group: wgpu::BindGroup,
     time: model::Instant,
+    mouse_pressed: bool,
+    full_screen: bool,
 }
 
 impl State {
@@ -297,6 +299,8 @@ impl State {
             model_buffer,
             model_bind_group,
             time,
+            mouse_pressed: false,
+            full_screen: false,
         }
     }
 
@@ -310,8 +314,49 @@ impl State {
     }
 
     #[allow(unused_variables)]
-    fn input(&mut self, event: &WindowEvent) -> bool {
-        false
+    fn input(&mut self, window: &Window, event: &WindowEvent) -> bool {
+        match event {
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        virtual_keycode: Some(key),
+                        state,
+                        ..
+                    },
+                ..
+            } => {
+                match key {
+                    VirtualKeyCode::Escape => {
+                        self.full_screen = false;
+                    }
+                    _ => {},
+                }
+                self.camera_controller.process_keyboard(*key, *state)
+            }
+            WindowEvent::MouseWheel { delta, .. } => {
+                self.camera_controller.process_scroll(delta);
+                true
+            }
+            WindowEvent::MouseInput {
+                button: MouseButton::Left,
+                state,
+                ..
+            } => {
+                let prev = self.mouse_pressed;
+                self.mouse_pressed = *state == ElementState::Pressed;
+                if prev != self.mouse_pressed {
+                    _ = window.set_cursor_grab(true);
+                }
+                if !self.full_screen {
+                    #[cfg(target_arch="wasm32")] {
+                    window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+                    }
+                    self.full_screen = true;
+                }
+                true
+            }
+            _ => false,
+        }
     }
 
     fn update(&mut self, dt: std::time::Duration) {
@@ -425,7 +470,7 @@ pub async fn run() {
                 ref event,
                 window_id,
             } if window_id == window.id() => {
-                if !state.input(event) {
+                if !state.input(&window, event) {
                     match event {
                         WindowEvent::CloseRequested
                         | WindowEvent::KeyboardInput {
