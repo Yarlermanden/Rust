@@ -87,6 +87,7 @@ struct State {
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
+    camera_controller: camera::CameraController,
     model: model::Model,
     model_buffer: wgpu::Buffer,
     model_bind_group: wgpu::BindGroup,
@@ -138,6 +139,7 @@ impl State {
 
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
+        let camera_controller = camera::CameraController::new(4.0, 0.4);
 
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera Buffer"),
@@ -290,6 +292,7 @@ impl State {
             camera_uniform,
             camera_buffer,
             camera_bind_group,
+            camera_controller,
             model,
             model_buffer,
             model_bind_group,
@@ -311,13 +314,23 @@ impl State {
         false
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, dt: std::time::Duration) {
+        let old_time = self.time;
         self.model.update_current_time(self.time);
         self.model.update_model();
         self.queue.write_buffer(
             &self.model_buffer,
             0,
             bytemuck::cast_slice(&[self.model]),
+        );
+
+        self.camera_controller.update_camera(&mut self.camera, dt);
+        self.camera_uniform
+            .update_view_proj(&self.camera, &self.projection);
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera_uniform]),
         );
     }
 
@@ -397,9 +410,17 @@ pub async fn run() {
     }
     
     let mut state = State::new(&window).await;
+    let mut last_render_time = instant::Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         match event {
+            Event::MainEventsCleared => window.request_redraw(),
+            Event::DeviceEvent {
+                event: DeviceEvent::MouseMotion{ delta, },
+                .. // We're not using device_id currently
+            } => {
+                state.camera_controller.process_mouse(delta.0, delta.1)
+            }
             Event::WindowEvent {
                 ref event,
                 window_id,
@@ -428,7 +449,10 @@ pub async fn run() {
                 }
             }
             Event::RedrawRequested(window_id) if window_id == window.id() => {
-                state.update();
+                let now = instant::Instant::now();
+                let dt = now - last_render_time;
+                last_render_time = now;
+                state.update(dt);
                 match state.render() {
                     Ok(_) => {}
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => state.resize(state.size),

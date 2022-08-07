@@ -132,7 +132,7 @@ impl Model {
         for i in 0..self.sphere_count { 
             let i2 = i as f32;
             let offset = [(3.0*i2+self.current_time).sin() * 5.0, (2.0*i2+self.current_time).sin() * 5.0, (4.0*i2+self.current_time).sin() * 5.0];
-            self.spheres[i as usize].center = [offset[0], offset[1], -20.0 + offset[2]];
+            self.spheres[i as usize].center = [5.0 + offset[0], 10.0 + offset[1], -20.0 + offset[2]];
             //self.spheres[i as usize].material.color = Matrix::normalize(offset) * 0.5 + 0.5;
             //self.spheres[i as usize].material.color = [0.5, 0.5, 0.5];
         }

@@ -99,7 +99,8 @@ fn vs_main(
 
     var viewDir = normalize(camera.inv_proj_mat * out.clip_position);
     out.view_dir = viewDir.xyz / viewDir.w;
-    out.view_dir = normalize(mat3x3(camera.inv_view_mat[0].xyz, camera.inv_view_mat[1].xyz, camera.inv_view_mat[2].xyz)*out.view_dir);
+    //out.view_dir = normalize(mat3x3(camera.inv_view_mat[0].xyz, camera.inv_view_mat[1].xyz, camera.inv_view_mat[2].xyz)*out.view_dir);
+    out.view_dir = normalize((camera.inv_view_mat * vec4<f32>(out.view_dir, 0.0)).xyz);
     return out;
 }
 
