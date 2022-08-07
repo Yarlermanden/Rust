@@ -10,6 +10,7 @@ use nalgebra::base;
 
 const LIGHT_COUNT: usize = 1;
 const SPHERE_COUNT: usize = 10;
+const BOX_COUNT: usize = 5;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -55,6 +56,23 @@ impl Sphere {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Box {
+    bounds: [[f32; 4]; 2],
+    material: Material,
+}
+
+impl Box {
+    pub fn new<> (
+    ) -> Self {
+        Self { 
+            bounds: [[0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            material: Material::new(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Material
 {
     color: [f32; 3],
@@ -79,6 +97,30 @@ impl Material {
             exp: 0.001,
         }
     }
+
+    pub fn get_normal (
+    ) -> Self {
+        Self { 
+            color: [0.5, 0.5, 0.5], 
+            padding: 0.0, 
+            I_aK_a: 0.05, 
+            diffuse: 2.0, 
+            Ks: 0.01, 
+            exp: 0.001,
+        }
+    }
+
+    pub fn get_metal (
+    ) -> Self {
+        Self { 
+            color: [0.5, 0.5, 0.5], 
+            padding: 0.0, 
+            I_aK_a: 0.05, 
+            diffuse: 0.3, 
+            Ks: 0.6, 
+            exp:  80.0,
+        }
+    }
 }
 
 #[repr(C)]
@@ -98,9 +140,13 @@ impl Model {
         let mut s: [Sphere; SPHERE_COUNT] = std::iter::repeat_with(|| Sphere::new())
             .take(SPHERE_COUNT).collect::<Vec<_>>()
             .try_into().unwrap();
+        s[0].material = Material::get_metal();
         s[0].material.color = [0.0, 0.0, 0.5];
+        s[1].material = Material::get_metal();
         s[1].material.color = [0.0, 0.5, 0.0];
+        s[2].material = Material::get_metal();
         s[2].material.color = [0.5, 0.0, 0.0];
+        s[3].material = Material::get_metal();
         s[3].material.color = [0.5, 0.5, 0.0];
         s[4].material.color = [0.0, 0.5, 0.5];
         s[5].material.color = [0.5, 0.0, 0.5];
