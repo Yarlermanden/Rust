@@ -84,7 +84,7 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) view_pos: vec3<f32>,
-    @location(1) color: vec3<f32>,
+    @location(1) view_dir: vec3<f32>,
 };
 
 @vertex
@@ -93,9 +93,13 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.clip_position = vec4<f32>(model.position, 1.0);
-    var viewPos = camera.inv_proj_mat * out.clip_position;
+
+    var viewPos = camera.inv_view_mat *  camera.inv_proj_mat * out.clip_position;
     out.view_pos = viewPos.xyz / viewPos.w;
-    out.color = model.position;
+
+    var viewDir = normalize(camera.inv_proj_mat * out.clip_position);
+    out.view_dir = viewDir.xyz / viewDir.w;
+    out.view_dir = normalize(mat3x3(camera.inv_view_mat[0].xyz, camera.inv_view_mat[1].xyz, camera.inv_view_mat[2].xyz)*out.view_dir);
     return out;
 }
 
@@ -193,13 +197,11 @@ fn PushRay(location: vec3<f32>, direction: vec3<f32>, colorFilter: vec3<f32>, g:
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>
 {
-    //var _rt_pendingRays: array<Ray, 100>;
     var global:  Globals;
     global.rayCount = 0;
-    //global.pendingRays = new Array<Ray, 100>();
 
-    //let color = vec3<f32>(0.4);
-    PushRay(in.view_pos, normalize(in.view_pos), vec3<f32>(1.0), &global);
+    //PushRay(in.view_pos, normalize(in.view_pos), vec3<f32>(1.0), &global);
+    PushRay(in.view_pos, in.view_dir, vec3<f32>(1.0), &global);
 
     var color = vec3<f32>(0.0);
     for (var i = 0; i < global.rayCount; i+=1)
