@@ -132,6 +132,7 @@ pub struct Model {
     padding3: f32,
     spheres: [Sphere; SPHERE_COUNT],
     lights: [Light; LIGHT_COUNT],
+    boxes: [Box; BOX_COUNT],
 }
 
 impl Model {
@@ -154,6 +155,11 @@ impl Model {
         s[7].material.color = [0.8, 0.5, 0.5];
         s[8].material.color = [0.5, 0.8, 0.5];
         s[9].material.color = [0.5, 0.5, 0.8];
+        let mut b: [Box; BOX_COUNT] = std::iter::repeat_with(|| Box::new()).take(BOX_COUNT).collect::<Vec<_>>().try_into().unwrap();
+        b[0].bounds = [[-20.0, 0.0, 0.0, 0.0], [-5.0, 10.0, 5.0, 0.0]];
+        b[1].bounds = [[-70.0, -11.0, -100.0, 0.0], [70.0, -10.0, 50.0, 0.0]];
+        b[2].bounds = [[-70.0, -11.0, -100.0, 0.0], [-69.0, 60.0, 50.0, 0.0]];
+        b[3].bounds = [[69.0, -11.0, -100.0, 0.0], [70.0, 60., 50.0, 0.0]];
         Self {
             current_time: 0.0,
             sphere_count: SPHERE_COUNT as i32,
@@ -161,6 +167,7 @@ impl Model {
             padding3: 0.0,
             spheres: s,
             lights: std::iter::repeat_with(|| Light::new()).take(LIGHT_COUNT).collect::<Vec<_>>().try_into().unwrap(),
+            boxes: b,
         }
     }
 

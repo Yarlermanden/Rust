@@ -2,6 +2,7 @@ let _rm_MaxRays: i32 = 3;
 fn getInfinity() -> f32 { return 1.0 / 0.0; }
 let SPHERE_COUNT: i32 = 10;
 let LIGHT_COUNT: i32 = 1;
+let BOX_COUNT: i32 = 5;
 
 struct Ray
 {
@@ -46,6 +47,12 @@ struct Sphere
     material: Material,
 };
 
+struct Box 
+{
+    bounds: mat2x4<f32>,
+    material: Material,
+}
+
 struct Distance 
 {
     d: f32,
@@ -73,6 +80,7 @@ struct Model {
     padding3: f32,
     spheres: array<Sphere, SPHERE_COUNT>,
     lights: array<Light, LIGHT_COUNT>,
+    boxes: array<Box, BOX_COUNT>,
 }
 @group(1) @binding(0)
 var<uniform> model: Model;
@@ -132,6 +140,82 @@ fn raySphereIntersection(ray: Ray, sphere: Sphere, distance: ptr<function, f32>,
     return hit;
 }
 
+fn conditionalSwap(min: ptr<function, f32>, max: ptr<function, f32>) {
+    if(*min > *max) {
+        let temp: f32 = *min;
+        *min = *max;
+        *max = temp;
+    }
+}
+
+fn rayboxIntersection(ray: Ray, box: Box, distance: ptr<function, f32>, o: ptr<function, Output>) -> bool
+{
+    var hit = false;
+
+    var tmin: f32 = (box.bounds[0].x - ray.location.x) / ray.direction.x;
+    var tmax: f32 = (box.bounds[1].x - ray.location.x) / ray.direction.x;
+    conditionalSwap(&tmin, &tmax);
+
+    var tymin: f32 = (box.bounds[0].y - ray.location.y) / ray.direction.y;
+    var tymax: f32 = (box.bounds[1].y - ray.location.y) / ray.direction.y;
+    conditionalSwap(&tymin, &tymax);
+
+    if ((tmin > tymax) || (tymin > tmax)) {
+        return false;
+    }
+    if (tymin > tmin) {
+        tmin = tymin;
+    }
+    if (tymax < tmax) {
+        tmax = tymax;
+    }
+
+    var tzmin: f32 = (box.bounds[0].z - ray.location.z) / ray.direction.z;
+    var tzmax: f32 = (box.bounds[1].z - ray.location.z) / ray.direction.z;
+    conditionalSwap(&tzmin, &tzmax);
+
+    if ((tmin > tzmax) || (tzmin > tmax)) {
+        return false;
+    }
+    if (tzmin > tmin) {
+        tmin = tzmin;
+    }
+    if (tzmax < tmax) {
+        tmax = tzmax;
+    }
+
+    //* -- Possible optimization
+    //float tmin, tmax, tymin, tymax, tzmin, tzmax;
+    //tmin = (box.bounds[ray.sign[0]].x - ray.location.x) * ray.invDir.x;
+    //tmax = (box.bounds[1-ray.sign[0]].x - ray.location.x) * ray.invDir.x;
+    //tymin = (box.bounds[ray.sign[1]].y - ray.location.y) * ray.invDir.y;
+    //tymax = (box.bounds[1-ray.sign[1]].y - ray.location.y) * ray.invDir.y;
+    //if ((tmin > tymax) || (tymin > tmax)) return false; //misses y completely
+    //if (tymin > tmin) tmin = tymin;
+    //if (tymax < tmax) tmax = tymax;
+    //tzmin = (box.bounds[ray.sign[2]].z - ray.location.z) * ray.invDir.z;
+    //tzmax = (box.bounds[1-ray.sign[2]].z - ray.location.z) * ray.invDir.z;
+    //if ((tmin > tzmax) || (tzmin > tmax)) return false; //misses z completely
+    //if (tzmin > tmin) tmin = tzmin;
+    //if (tzmax < tmax) tmax = tzmax;
+    //*/
+
+    var d: f32 = tmin;
+    if(d < 0.0) {
+        d = tmax;
+        if (d < 0.0) {
+            return false;
+        }
+    }
+    //if(o.lowestTransparency > box.material.transparency) o.lowestTransparency = box.material.transparency;
+    if(d >= *distance) {
+        return false; //Another object is closer
+    }
+    //------- It has hit --------
+    *distance = d;
+    return true;
+}
+
 //output o....
 fn castRay(ray: Ray, distance: ptr<function, f32>, o: ptr<function, Output>) -> bool
 {
@@ -139,6 +223,10 @@ fn castRay(ray: Ray, distance: ptr<function, f32>, o: ptr<function, Output>) -> 
 
     for (var i = 0; i < model.sphere_count; i+=1) {
         hit = raySphereIntersection(ray, model.spheres[i], distance, o) || hit;
+    }
+
+    for (var i = 0; i < BOX_COUNT; i+=1) {
+        hit = rayboxIntersection(ray, model.boxes[i], distance, o) || hit;
     }
 
     return hit;
