@@ -15,6 +15,8 @@ struct Material
 {
     color: vec3<f32>,
     padding: f32,
+    reflection_global: vec3<f32>,
+    padding2: f32,
 
     //PhongLighting
     I_aK_a: f32, //I_a * K_a
@@ -29,6 +31,7 @@ struct Output
     normal: vec3<f32>,
     refractPoint: vec3<f32>,
     refractDirection: vec3<f32>,
+    reflection_direction: vec3<f32>,
     material: Material,
 };
 
@@ -107,7 +110,6 @@ fn vs_main(
 
     var viewDir = normalize(camera.inv_proj_mat * out.clip_position);
     out.view_dir = viewDir.xyz / viewDir.w;
-    //out.view_dir = normalize(mat3x3(camera.inv_view_mat[0].xyz, camera.inv_view_mat[1].xyz, camera.inv_view_mat[2].xyz)*out.view_dir);
     out.view_dir = normalize((camera.inv_view_mat * vec4<f32>(out.view_dir, 0.0)).xyz);
     return out;
 }
@@ -133,6 +135,7 @@ fn raySphereIntersection(ray: Ray, sphere: Sphere, distance: ptr<function, f32>,
                 (*o).location = ray.location + d * ray.direction;
                 (*o).normal = normalize((*o).location - sphere.center);
                 (*o).material = sphere.material;
+                (*o).reflection_direction = normalize(2.0*dot(-ray.direction, (*o).normal)*(*o).normal + ray.direction);
                 hit = true;
             }
         }
@@ -215,7 +218,6 @@ fn rayboxIntersection(ray: Ray, box: Box, distance: ptr<function, f32>, o: ptr<f
     *distance = d;
     (*o).location = ray.location + d * ray.direction;
     (*o).material = box.material;
-    //(*o).normal = normalize((*o).location - .center);
 
     if(abs((*o).location.x - box.bounds[0].x) < 0.001 || abs((*o).location.x - box.bounds[1].x) < 0.01) {
         if(ray.direction.x > 0.0) {
@@ -241,10 +243,10 @@ fn rayboxIntersection(ray: Ray, box: Box, distance: ptr<function, f32>, o: ptr<f
             (*o).normal = vec3<f32>(0.0, 0.0, 1.0);
         }
     }
+    (*o).reflection_direction = normalize(2.0*dot(-ray.direction, (*o).normal)*(*o).normal + ray.direction);
     return true;
 }
 
-//output o....
 fn castRay(ray: Ray, distance: ptr<function, f32>, o: ptr<function, Output>) -> bool
 {
     var hit = false;
@@ -263,7 +265,6 @@ fn castRay(ray: Ray, distance: ptr<function, f32>, o: ptr<function, Output>) -> 
 fn castRay1(ray: Ray, distance: ptr<function, f32>) -> bool
 {
     var output: Output;
-    //let o: ptr<function, Output> = &output;
     return castRay(ray, distance, &output);
 }
 
@@ -317,7 +318,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>
     var global:  Globals;
     global.rayCount = 0;
 
-    //PushRay(in.view_pos, normalize(in.view_pos), vec3<f32>(1.0), &global);
     PushRay(in.view_pos, in.view_dir, vec3<f32>(1.0), &global);
 
     var color = vec3<f32>(0.0);
@@ -329,6 +329,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>
         if (castRay(ray, &distance, &o))
         {
             color += ray.colorFilter * ProcessOutput(ray, o);
+
+
+            if(length(ray.colorFilter) < 0.001) {
+                continue;
+            }
+            PushRay(o.location, o.reflection_direction, ray.colorFilter*o.material.reflection_global, &global);
         }
     }
     return vec4<f32>(color, 1.0);
