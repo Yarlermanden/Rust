@@ -193,3 +193,32 @@ impl CameraController {
         }
     }
 }
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct CameraUniform {
+    view_position: [f32; 4],
+    view_proj: [[f32; 4]; 4],
+    inv_view_mat: [[f32; 4]; 4],
+    inv_proj_mat: [[f32; 4]; 4],
+}
+
+impl CameraUniform {
+    pub fn new() -> Self {
+        Self {
+            view_position: [0.0; 4],
+            inv_view_mat: cgmath::Matrix4::identity().into(),
+            inv_proj_mat: cgmath::Matrix4::identity().into(),
+            view_proj: cgmath::Matrix4::identity().into(),
+        }
+    }
+
+    pub fn update_view_proj(&mut self, camera: &Camera, projection: &Projection) {
+        self.view_position = camera.position.to_homogeneous().into();
+        let view = camera.calc_matrix();
+        let proj = projection.calc_matrix();
+        self.inv_view_mat = view.inverse_transform().unwrap().into();
+        self.inv_proj_mat = proj.inverse_transform().unwrap().into();
+        self.view_proj = (proj * view).into()
+    }
+}

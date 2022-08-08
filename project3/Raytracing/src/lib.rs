@@ -8,67 +8,12 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-mod camera;
-mod model;
-
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct CameraUniform {
-    view_position: [f32; 4],
-    view_proj: [[f32; 4]; 4],
-    inv_view_mat: [[f32; 4]; 4],
-    inv_proj_mat: [[f32; 4]; 4],
-}
-
-impl CameraUniform {
-    fn new() -> Self {
-        Self {
-            view_position: [0.0; 4],
-            inv_view_mat: cgmath::Matrix4::identity().into(),
-            inv_proj_mat: cgmath::Matrix4::identity().into(),
-            view_proj: cgmath::Matrix4::identity().into(),
-        }
-    }
-
-    fn update_view_proj(&mut self, camera: &camera::Camera, projection: &camera::Projection) {
-        self.view_position = camera.position.to_homogeneous().into();
-        let view = camera.calc_matrix();
-        let proj = projection.calc_matrix();
-        self.inv_view_mat = view.inverse_transform().unwrap().into();
-        self.inv_proj_mat = proj.inverse_transform().unwrap().into();
-        self.view_proj = (proj * view).into()
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct Pixel {
-    position: [f32; 3],
-}
-
-impl Pixel {
-    fn new()-> Pixel {
-        Pixel { position: [0.0, 0.0, 0.0] }
-    }
-
-    fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Pixel>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    offset: 0,
-                    shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-            ],
-        }
-    }
-
-}
+mod camera;
+mod model;
+mod pixel;
 
 const PIXELAMOUNT: usize = 1600;
 const TOTALPIXELS: usize = PIXELAMOUNT*PIXELAMOUNT;
@@ -81,10 +26,10 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    pixels: Vec<Pixel>,
+    pixels: Vec<pixel::Pixel>,
     camera: camera::Camera,
     projection: camera::Projection,
-    camera_uniform: CameraUniform,
+    camera_uniform: camera::CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     camera_controller: camera::CameraController,
@@ -139,7 +84,7 @@ impl State {
         let projection =
             camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
 
-        let mut camera_uniform = CameraUniform::new();
+        let mut camera_uniform = camera::CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
         let camera_controller = camera::CameraController::new(10.0, 0.4);
 
@@ -208,11 +153,11 @@ impl State {
             label: Some("model_bind_group"),
         });
 
-        let mut pixels: Vec<Pixel> = Vec::with_capacity(TOTALPIXELS);
+        let mut pixels: Vec<pixel::Pixel> = Vec::with_capacity(TOTALPIXELS);
 
         for x in 0..PIXELAMOUNT {
             for y in 0..PIXELAMOUNT {
-                pixels.push(Pixel{ position: [(x as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, (y as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, 0.0] });
+                pixels.push(pixel::Pixel{ position: [(x as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, (y as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, 0.0] });
             }
         }
 
@@ -247,7 +192,7 @@ impl State {
                 module: &shader,
                 entry_point: "vs_main",
                 buffers: &[
-                    Pixel::desc(),
+                    pixel::Pixel::desc(),
                 ],
             },
             fragment: Some(wgpu::FragmentState {

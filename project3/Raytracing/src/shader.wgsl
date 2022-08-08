@@ -21,7 +21,7 @@ struct Material
     //PhongLighting
     I_aK_a: f32, //I_a * K_a
     diffuse: f32, //I Kdf
-    Ks: f32, //specular reflectance
+    ks: f32, //specular reflectance
     exp: f32, //specular exponent
 };
 
@@ -278,7 +278,7 @@ fn PhongLighting(ray: Ray, o: Output) -> vec3<f32> {
 
         let V: vec3<f32> = -ray.direction; //view direction
         let H: vec3<f32> = normalize(L+V); //halfway vector between light direction and view direction
-        let R_specular: vec3<f32> = model.lights[i].color * o.material.Ks * pow(max(dot(o.normal, H), 0.0), o.material.exp); //I_light * Ks * (N•H)^exp
+        let R_specular: vec3<f32> = model.lights[i].color * o.material.ks * pow(max(dot(o.normal, H), 0.0), o.material.exp); //I_light * ks * (N•H)^exp
 
         //let distance: f32 = length(model.lights[i].location - o.location);
         //let attenuation: f32 = 1.0/pow(distance,2.0);

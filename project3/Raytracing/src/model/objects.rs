@@ -71,7 +71,7 @@ pub struct Material
     //PhongLighting
     I_aK_a: f32, //I_a * K_a
     diffuse: f32, //I Kdf
-    Ks: f32, //specular reflectance
+    ks: f32, //specular reflectance
     exp: f32, //specular exponent
 }
 
@@ -90,7 +90,7 @@ impl Material {
             padding2: 0.0,
             I_aK_a: 0.05, 
             diffuse: 2.0, 
-            Ks: 0.01, 
+            ks: 0.01, 
             exp: 0.001,
         }
     }
@@ -104,7 +104,7 @@ impl Material {
             padding2: 0.0,
             I_aK_a: 0.05, 
             diffuse: 0.3, 
-            Ks: 0.6, 
+            ks: 0.6, 
             exp:  80.0,
         }
     }
