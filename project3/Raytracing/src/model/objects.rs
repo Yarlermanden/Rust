@@ -19,6 +19,7 @@ impl Light {
     }
 }
 
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Sphere
@@ -39,6 +40,7 @@ impl Sphere {
     }
 }
 
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Box {
@@ -55,6 +57,7 @@ impl Box {
         }
     }
 }
+
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -75,16 +78,7 @@ pub struct Material
 impl Material {
     pub fn new<> (
     ) -> Self {
-        Self {
-            color: [0.5, 0.5, 0.5], 
-            padding: 0.0, 
-            reflection_global: [0.01, 0.01, 0.01],
-            padding2: 0.0,
-            I_aK_a: 0.05, 
-            diffuse: 2.0, 
-            Ks: 0.01, 
-            exp: 0.001,
-        }
+        return Material::get_normal();
     }
 
     pub fn get_normal (

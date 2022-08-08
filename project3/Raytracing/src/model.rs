@@ -14,6 +14,9 @@ pub use self::objects::Material;
 pub use self::objects::Box;
 pub use self::objects::Sphere;
 
+pub use self::instant::Instant;
+mod instant;
+
 const LIGHT_COUNT: usize = 1;
 const SPHERE_COUNT: usize = 10;
 const BOX_COUNT: usize = 5;
@@ -58,8 +61,8 @@ impl Model {
         b[2].bounds = [[-70.0, -11.0, -100.0, 0.0], [-69.0, 60.0, 50.0, 0.0]];
         b[2].material = Material::get_metal();
         b[2].material.color = [0.2, 0.1, 0.9];
-        b[1].material.color = [0.2, 0.7, 0.5];
         b[3].bounds = [[69.0, -11.0, -100.0, 0.0], [70.0, 60., 50.0, 0.0]];
+        b[3].material = Material::get_metal();
         b[3].material.color = [0.9, 0.2, 0.9];
         Self {
             current_time: 0.0,
@@ -72,14 +75,12 @@ impl Model {
         }
     }
 
-    pub fn update_current_time(&mut self, earlier: Instant) {
-        let temp = Instant::now()
+    pub fn update_current_time(&mut self, earlier: instant::Instant) {
+        let temp = instant::Instant::now()
         .duration_since(earlier)
         .as_nanos();
         let temp1 = (temp % (std::u32::MAX-1) as u128) as u32;
         self.current_time = (temp1 as f32 / 4300000000.00) * 6.3;
-        //println!("{:.32}", temp1);
-        //println!("{} : {}", temp1, self.current_time);
     }
 
     pub fn update_model(&mut self) {
@@ -87,54 +88,7 @@ impl Model {
             let i2 = i as f32;
             let offset = [(3.0*i2+self.current_time).sin() * 5.0, (2.0*i2+self.current_time).sin() * 5.0, (4.0*i2+self.current_time).sin() * 5.0];
             self.spheres[i as usize].center = [5.0 + offset[0], 10.0 + offset[1], -20.0 + offset[2]];
-            //self.spheres[i as usize].material.color = Matrix::normalize(offset) * 0.5 + 0.5;
-            //self.spheres[i as usize].material.color = [0.5, 0.5, 0.5];
         }
     }
 
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Instant(std::time::Instant);
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Instant {
-    pub fn now() -> Self { Self(std::time::Instant::now()) }
-    pub fn duration_since(&self, earlier: Instant) -> Duration { self.0.duration_since(earlier.0) }
-    pub fn elapsed(&self) -> Duration { self.0.elapsed() }
-    pub fn checked_add(&self, duration: Duration) -> Option<Self> { self.0.checked_add(duration).map(|i| Self(i)) }
-    pub fn checked_sub(&self, duration: Duration) -> Option<Self> { self.0.checked_sub(duration).map(|i| Self(i)) }
-}
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(inline_js = r#"
-export function performance_now() {
-  return performance.now();
-}"#)]
-extern "C" {
-    fn performance_now() -> f64;
-}
-
-#[cfg(target_arch = "wasm32")]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Instant(u64);
-
-#[cfg(target_arch = "wasm32")]
-impl Instant {
-    pub fn now() -> Self { Self((performance_now() * 1000.0) as u64) }
-    pub fn duration_since(&self, earlier: Instant) -> Duration { Duration::from_micros(self.0 - earlier.0) }
-    pub fn elapsed(&self) -> Duration { Self::now().duration_since(*self) }
-    pub fn checked_add(&self, duration: Duration) -> Option<Self> {
-        match duration.as_micros().try_into() {
-            Ok(duration) => self.0.checked_add(duration).map(|i| Self(i)),
-            Err(_) => None,
-        }
-    }
-    pub fn checked_sub(&self, duration: Duration) -> Option<Self> {
-        match duration.as_micros().try_into() {
-            Ok(duration) => self.0.checked_sub(duration).map(|i| Self(i)),
-            Err(_) => None,
-        }
-    }
 }
