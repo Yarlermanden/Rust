@@ -15,8 +15,8 @@ mod camera;
 mod model;
 mod pixel;
 
-const PIXELAMOUNT: usize = 1600;
-const TOTALPIXELS: usize = PIXELAMOUNT*PIXELAMOUNT;
+//const PIXELAMOUNT: usize = 1600;
+//const TOTALPIXELS: usize = PIXELAMOUNT*PIXELAMOUNT;
 
 struct State {
     surface: wgpu::Surface,
@@ -26,7 +26,6 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    pixels: Vec<pixel::Pixel>,
     camera: camera::Camera,
     projection: camera::Projection,
     camera_uniform: camera::CameraUniform,
@@ -78,11 +77,12 @@ impl State {
             height: size.height,
             present_mode: wgpu::PresentMode::Fifo,
         };
+        println!("{}", size.width);
+        println!("{}", size.height);
         surface.configure(&device, &config);
 
-        let camera = camera::Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0));
-        let projection =
-            camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
+        let camera = camera::Camera::new((0.0, 10.0, 20.0), cgmath::Deg(-90.0), cgmath::Deg(0.0));
+        let projection = camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
 
         let mut camera_uniform = camera::CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
@@ -153,19 +153,12 @@ impl State {
             label: Some("model_bind_group"),
         });
 
-        let mut pixels: Vec<pixel::Pixel> = Vec::with_capacity(TOTALPIXELS);
-
-        for x in 0..PIXELAMOUNT {
-            for y in 0..PIXELAMOUNT {
-                pixels.push(pixel::Pixel{ position: [(x as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, (y as i32-(PIXELAMOUNT/2) as i32) as f32 / (PIXELAMOUNT/2) as f32, 0.0] });
-            }
-        }
+        let pixels = State::update_pixel_count(size.width as usize, size.height as usize);
 
         let vertex_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Vertex Buffer"),
                 contents: bytemuck::cast_slice(&pixels),
-                //contents: bytemuck::cast_slice(PIXELS),
                 usage: wgpu::BufferUsages::VERTEX,
             }
         );
@@ -233,7 +226,6 @@ impl State {
             config,
             render_pipeline,
             vertex_buffer,
-            pixels,
             camera,
             projection,
             camera_uniform,
@@ -255,7 +247,27 @@ impl State {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
+            
+            let pixels = State::update_pixel_count(new_size.width as usize, new_size.height as usize);
+
+            self.vertex_buffer = self.device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: Some("Vertex Buffer"),
+                    contents: bytemuck::cast_slice(&pixels),
+                    usage: wgpu::BufferUsages::VERTEX,
+                }
+            );
         }
+    }
+
+    fn update_pixel_count(width: usize, height: usize) -> Vec<pixel::Pixel> {
+        let mut pixels: Vec<pixel::Pixel> = Vec::with_capacity(width*height);
+        for x in 0..width {
+            for y in 0..height {
+                pixels.push(pixel::Pixel{ position: [(x as i32-(width/2) as i32) as f32 / (width/2) as f32, (y as i32-(height/2) as i32) as f32 / (height/2) as f32, 0.0] });
+            }
+        }   
+        return pixels;
     }
 
     #[allow(unused_variables)]
@@ -358,7 +370,8 @@ impl State {
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
             render_pass.set_bind_group(1, &self.model_bind_group, &[]);
-            render_pass.draw(0..(TOTALPIXELS-1) as u32, 0..1);
+            render_pass.draw(0..((self.size.width * self.size.height)-1) as u32, 0..1);
+            //render_pass.draw(0..((1600*1600)-1) as u32, 0..1);
         }
 
         self.queue.submit(iter::once(encoder.finish()));
