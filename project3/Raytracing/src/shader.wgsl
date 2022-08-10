@@ -1,4 +1,4 @@
-let _rm_MaxRays: i32 = 3;
+let _rm_MaxRays: i32 = 4;
 fn getInfinity() -> f32 { return 1.0 / 0.0; }
 let SPHERE_COUNT: i32 = 10;
 let LIGHT_COUNT: i32 = 1;
@@ -331,7 +331,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>
             color += ray.colorFilter * ProcessOutput(ray, o);
 
 
-            if(length(ray.colorFilter) < 0.001) {
+            if(length(ray.colorFilter*o.material.reflection_global) < 0.03) {
                 continue;
             }
             PushRay(o.location, o.reflection_direction, ray.colorFilter*o.material.reflection_global, &global);
