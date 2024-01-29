@@ -1,0 +1,19 @@
+syntax = "proto3";
+package player_input;
+
+import "common/vector.proto";
+
+service PlayerAction {
+    rpc MovePlayer(MoveRequest) returns (MoveResponse);
+}   
+
+message MoveRequest {
+    int64 player_id = 1;
+    common.FloatVector3 last_position = 2;
+    common.FloatVector3 desired_position = 3;
+}
+
+message MoveResponse {
+    bool success = 1;
+    common.FloatVector3 new_position = 2;
+}
