@@ -1,0 +1,81 @@
+syntax = "proto3";
+package on_prem;
+
+//service OnPrem {
+//    rpc FindLocations(FindLocationsInput) returns (FindLocationsOutput);
+//}
+
+message ServerConfig {
+    string company_id = 1;
+    uint64 sleep_interval_sec = 2;
+}
+
+message JobRequest {
+    string company_id = 1;
+    //maybe some state about what's going on..    
+}
+
+message JobResponse {
+    //job is null if nothing to do
+    oneof job {
+        ScanJob scan_job = 1;
+    }
+}
+
+message ScanJob {
+    string company_id = 1;
+    ServiceType service = 2;
+    oneof job_type {
+        ExploreRequest explore_request = 3;
+        AnalysisRequest analysis_request = 4;  
+        CheckForDeletedFilesRequest check_for_deleted_files_request = 5;
+        DeleteFilesRequest delete_files_request = 6;
+    }
+}
+
+message ExploreRequest {
+    string root_path = 1;
+    repeated string valid_extensions = 2;
+    //company id and other stuff that determines whether we should disregard this message
+}
+
+message ExploreOutput {
+    repeated string file_paths = 1;
+    //company id
+    //scan/job id
+    //possible other stuff?
+}
+
+message AnalysisRequest {
+    repeated string file_paths = 1;
+    //batch of files to scan
+    //
+}
+
+message CheckForDeletedFilesRequest {
+    repeated File files = 1; //files to check for wether they are deleted
+}
+
+message CheckForDeletedFilesResponse {
+    repeated string file_ids = 1; //files which were not found and thus were deleted
+}
+
+message DeleteFilesRequest {
+    repeated File files = 2; //files to delete
+}
+
+message DeleteFilesResponse {
+    repeated string file_ids = 1; //files which has successfully been deleted
+}
+
+//TODO use the right types
+message File {
+    string id = 1;
+    string file_path = 2;
+}
+
+enum ServiceType {
+    SERVICE_TYPE_NONE = 0;
+    SERVICE_TYPE_FILE_SHARE = 1;
+    SERVICE_TYPE_EXCHANGE_SERVER = 2;
+}

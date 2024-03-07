@@ -1,4 +1,4 @@
-let _rm_MaxRays: i32 = 4;
+let _rm_MaxRays: i32 = 2;
 fn getInfinity() -> f32 { return 1.0 / 0.0; }
 let SPHERE_COUNT: i32 = 10;
 let LIGHT_COUNT: i32 = 1;
