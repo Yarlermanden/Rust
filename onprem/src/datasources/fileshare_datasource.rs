@@ -1,18 +1,15 @@
 use walkdir::WalkDir;
-use std::any::Any;
 use std::collections::HashSet;
-use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::Metadata;
 use tokio_util::sync::CancellationToken;
 use super::super::on_prem::*;
 use super::super::on_prem;
 
+use std::error::Error;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::path::Path;
-
-use std::io::{self, BufRead};
 
 
 pub fn explore_location(request: ExploreRequest, token: CancellationToken) -> Result<ExploreOutput, String> {
@@ -31,30 +28,25 @@ fn find_file_locations<'a>(walk_dir: WalkDir, valid_extensions: &'a HashSet<&str
     walk_dir.into_iter()
         .filter_map(Result::ok)
         .filter(|entry| entry.file_type().is_file())
-        .filter(|file| is_valid_extension(file.path().extension(), valid_extensions))
+        .filter(|file| is_valid_extension(file.path().extension(), valid_extensions).unwrap_or_else(|| false) )
         .filter(|file| file.path().to_str().is_some())
         .map(|file| file.path().to_str().unwrap().to_string())
 }
 
-fn is_valid_extension<'a, 'b>(location: Option<&OsStr>, valid_extensions: &'a HashSet<&'b str>) -> bool {
-    match location {
-        None => false,
-        Some(l) => {
-            let s = l.to_str().unwrap();
-            valid_extensions.contains(s)
-        }
-    }
+fn is_valid_extension(location: Option<&OsStr>, valid_extensions: &HashSet<&str>) -> Option<bool> {
+    Some(valid_extensions.contains(location?.to_str()?)) 
 }
 
-pub fn analyze_files(request: AnalysisRequest, token: CancellationToken) -> Result<Vec<DataSourceFile>, String> {
+
+pub fn analyze_files(request: AnalysisRequest, token: CancellationToken) -> Result<Vec<Result<DataSourceFile, Box<dyn Error>>>, String> {
     let results = request.file_paths.into_iter().map(|file_path| {
 
-        let f = File::open(&file_path).unwrap();
-        let mut reader = BufReader::new(f);
+        let file = File::open(&file_path)?;
+        let mut reader = BufReader::new(file);
         let mut buffer = Vec::new();
     
         // Read file into vector.
-        reader.read_to_end(&mut buffer).unwrap();
+        reader.read_to_end(&mut buffer)?;
 
         let f = DataSourceFile {
             file: Some(on_prem::File {
@@ -63,7 +55,7 @@ pub fn analyze_files(request: AnalysisRequest, token: CancellationToken) -> Resu
             }),
             content: buffer
         };
-        f
+        Ok(f)
 
         //io::Read::bytes(file).
 
@@ -166,14 +158,48 @@ fn test_explore_files() {
 fn test_analyze_files() {
     let files = AnalysisRequest {
         file_paths: vec![
-            "/Users/martinholst/Desktop/Screenshot 2023-10-24 at 23.13.37.png",
-            "/Users/martinholst/Desktop/welcome.to.our.company.txt",
+            "/Users/martinholst/Downloads/Ønsker_Martin_2023_Jul.pdf",
+            //"/Users/martinholst/Desktop/Screenshot 2023-10-24 at 23.13.37.png",
+            //"/Users/martinholst/Desktop/welcome.to.our.company.txt",
         ].into_iter().map(|x| x.to_string()).collect()
     };
     let result = analyze_files(files, CancellationToken::new());
 
-    for f in result.unwrap() {
-        for x in f.content { print!("{}", x) }
+    for f in result.as_deref().unwrap() {
+        match f {
+            Ok(x) => for x in x.content.to_owned() { print!("{}", x) },
+            Err(e) => print!("Failed for file with error: {}", e)
+        }
         println!("")
     }
+
+    assert!(match result.unwrap().first().unwrap() { Ok(x) => x.content.len() > 100, Err(_) => false} )//.content.len() > 100);
+}
+
+#[test]
+fn test_check_for_deleted_files() {
+    //check for non existing file
+
+    //assert it isn't there
+
+    //add the file
+
+    //check that it now exists
+    //assert
+
+    //delete the file
+
+    //check that it now is gone again
+    //assert
+    unimplemented!()
+}
+
+#[test]
+fn test_delete_files() {
+    //add a file
+
+    //delete the method
+
+    //assert that the file is deleted
+    unimplemented!()
 }
