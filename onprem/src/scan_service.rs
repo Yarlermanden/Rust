@@ -69,7 +69,7 @@ fn check_for_job(request: JobRequest, token: &CancellationToken) -> JobResponse 
         "pptx"
     ].into_iter().map(|x| x.to_string()).collect();
 
-    let t = 3;
+    let t = 1;
     let job = match t {
         1 => JobType::ExploreRequest(ExploreRequest {
             root_path: current_dir.to_string(),

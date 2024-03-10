@@ -52,6 +52,10 @@ message AnalysisRequest {
     //
 }
 
+message AnalysisOutput {
+    repeated DataSourceFile file = 1;
+}
+
 message CheckForDeletedFilesRequest {
     repeated File files = 1; //files to check for wether they are deleted
 }
@@ -72,6 +76,11 @@ message DeleteFilesResponse {
 message File {
     string id = 1;
     string file_path = 2;
+}
+
+message DataSourceFile {
+    File file = 1;
+    bytes content = 2;
 }
 
 enum ServiceType {
